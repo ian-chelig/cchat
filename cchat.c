@@ -105,12 +105,10 @@ void printUsage () {
 }
 
 void processArgs (Args args) {
-  printf("%d\n", args.s);
   if (args.s == 1)
     initServer(args);
   if (args.c != NULL)
-    printf("init client");
-
+    initClient(args);
 }
 
 Args handleArgs (Args args) {
