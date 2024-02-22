@@ -16,6 +16,8 @@ void initClient(Args args) {
     .sin_port = htons(args.port), // Error check this!
     .sin_addr = inet_addr(args.c)
   };
+  
+  //handle username input
 
   int result = connect(sockfd, (struct sockaddr *)&address, sizeof(address));
 

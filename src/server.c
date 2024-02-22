@@ -23,6 +23,9 @@ void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   char buffer[255] = { 0 };
   int clientfd = args->clientfd;
+
+  //handle initial connection setup
+
   while (read(clientfd, buffer, 255) > 0) { //while connection not dead
     fdNode_t *current = args->start->next;
     while (current != NULL) { //traverse linked list
