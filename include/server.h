@@ -3,6 +3,12 @@
 
 #include "args.h"
 
+struct connectionArgs {
+  int index;
+  int *length;
+  int *array;
+};
+
 void initServer(Args args);
 
 #endif
