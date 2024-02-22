@@ -4,16 +4,20 @@
 #include <poll.h>
 #include <unistd.h>
 
-int main() {
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+#include "args.h"
+
+void initClient(Args args) {
+  printf("Initializing Client\n");
+  fflush(stdout);
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   struct sockaddr_in address = {
-    AF_INET,
-    htons(9999),
-    0
+    .sin_family = AF_INET,
+    .sin_port = htons(args.port), // Error check this!
+    .sin_addr = inet_addr(args.c)
   };
-  
-  connect(sockfd, &address, sizeof(address));
+
+  connect(sockfd, (struct sockaddr *)&address, sizeof(address));
 
   // stdin - 0
   struct pollfd fds[2] = {
@@ -39,11 +43,9 @@ int main() {
      send(sockfd, buffer, 255, 0);
    } else if (fds[1].revents & POLLIN) {
      if (recv(sockfd, buffer, 255, 0) == 0) {
-        return 0;
+        return;
       }
      printf("%s\n", buffer);
    }
   }
-
-  return 0;
 }
