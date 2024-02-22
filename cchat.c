@@ -21,7 +21,7 @@ void initClient(Args args) {
     .sin_addr = inet_addr(args.c)
   };
 
-  connect(sockfd, &address, sizeof(address));
+  connect(sockfd, (struct sockaddr *)&address, sizeof(address));
 }
 
 void initServer(Args args) {
@@ -35,7 +35,7 @@ void initServer(Args args) {
     .sin_addr = INADDR_ANY
   };
   
-  int res = bind (sockfd, &address, sizeof(address));
+  int res = bind (sockfd, (struct sockaddr *)&address, sizeof(address));
   res = listen(sockfd, 10);
   int clientfd = accept(sockfd, 0, 0);
   
@@ -78,15 +78,15 @@ void processArgs (Args args) {
   printf("%d\n", args.s);
   if (args.s == 1)
     initServer(args);
-  if (args.c != '\0')
+  if (args.c != NULL)
     printf("init client");
 
 }
 
 Args handleArgs (Args args) {
-  if (args.port == '\0') 
+  if (args.port == -1) 
     printUsage();
-  if (args.c == '\0')
+  if (args.c == NULL)
     args.s = 1;
 
   return args;
@@ -94,7 +94,7 @@ Args handleArgs (Args args) {
 
 Args parseArgs (int argc, char **argv) {
   int opt;
-  Args args = (Args) {.s = 0, .c = '\0', .port = '\0'};
+  Args args = (Args) {.s = 0, .c = NULL, .port = -1};
 
   while((opt = getopt (argc, argv, ":sc:p:")) != -1) {
     switch (opt) {
