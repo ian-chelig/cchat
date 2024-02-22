@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "args.h"
 #include "server.h"
@@ -22,25 +23,25 @@ void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   char buffer[255] = { 0 };
   int clientfd = args->clientfd;
-  while (read(clientfd, buffer, 255) > 0) {
+  while (read(clientfd, buffer, 255) > 0) { //while connection not dead
     fdNode_t *current = args->start->next;
-    while (current != NULL) {
-      if (current->fd == clientfd) {
+    while (current != NULL) { //traverse linked list
+      if (current->fd == clientfd) { //don't send back to sending client
         current = current->next;
         continue;
       }
-      send(current->fd, buffer, 255, 0);
+      send(current->fd, buffer, 255, 0); //send to other clients
       current = current->next;
     }
   }
 
+  //remove client node from linked list, heal the linked list
   fdNode_t *clientNode = args->clientNode;
-  fdNode_t *tmp = clientNode->next->prev;
-  clientNode->prev->next = clientNode->next;
-  if (clientNode->next != NULL) {
-    clientNode->next->prev = tmp;
-  } else {
-    clientNode->prev = NULL;
+  fdNode_t *tmpprev = clientNode->prev;
+  fdNode_t *tmpnext = clientNode->next;
+  tmpprev->next = tmpnext;
+  if (tmpnext != NULL) {
+    tmpnext->prev = tmpprev;
   }
   free(clientNode);
 
@@ -53,20 +54,28 @@ void initServer(Args args) {
 
   struct sockaddr_in address = {
     .sin_family = AF_INET,
-    .sin_port = htons(args.port), // Error check this!
+    .sin_port = htons(args.port),
     .sin_addr = INADDR_ANY
   };
   
-  int res = bind (sockfd, (struct sockaddr *)&address, sizeof(address));
-  res = listen(sockfd, 10);
+  if(bind (sockfd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    printf("Could not bind to socket!\n");
+    printf("%s\n", strerror(errno));
+    
+  }
+  if (listen(sockfd, 10) < 0) {
+    printf("Could not listen on bound socket!\n");
+    printf("%s\n", strerror(errno));
+  }
   
-  fdNode_t *start = &((fdNode_t) {.fd = -1, .next = NULL, .prev = NULL});
+  //create heat
+  fdNode_t *start = &((fdNode_t) {.fd = -1, .next = NULL, .prev = NULL}); //ADD R/W LOCK TO NODES
   fdNode_t *end = start;
 
   for(;;) {
     int clientfd = accept(sockfd, 0, 0);
-    pthread_t newThread;
-    struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs)); //NEEDS R/W LOCK
+
+    //create new connection entry in linked list
     fdNode_t *newConnection = (fdNode_t *)malloc(sizeof(fdNode_t));
     *newConnection = (fdNode_t) {
       .fd = clientfd,
@@ -74,12 +83,20 @@ void initServer(Args args) {
       .next = NULL
     };
     end->next = newConnection;
+    end = end->next;
+
+    //provide proper information to connection handler thread
+    struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
     *args = (struct connectionArgs) {
       .clientfd = clientfd,
       .start = start,
       .clientNode = newConnection
     };
 
-    int result = pthread_create(&newThread, NULL, handleConnection, args);
+    pthread_t newThread;
+    if (pthread_create(&newThread, NULL, handleConnection, args) < 0) {
+      printf("Could not create connection handler thread!\n");
+      printf("%s\n", strerror(errno));
+    }
   }
 }
