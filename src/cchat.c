@@ -17,7 +17,7 @@ void printUsage () {
 }
 
 void processArgs (Args args) {
-  if (args.s == 1)
+  if (args.s == 1) {
     if (!args.h) {
       //setup own client here
       pthread_t clientThread;
@@ -29,8 +29,10 @@ void processArgs (Args args) {
       pthread_create(&clientThread, NULL, clientThread, &a);
     }
     initServer(args);
-  if (args.c != NULL)
+  }
+  if (args.c != NULL) {
     initClient(args);
+  }
 }
 
 Args handleArgs (Args args) {
