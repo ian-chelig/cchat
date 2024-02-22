@@ -22,6 +22,36 @@ void initClient(Args args) {
   };
 
   connect(sockfd, (struct sockaddr *)&address, sizeof(address));
+
+  // stdin - 0
+  struct pollfd fds[2] = {
+    {
+      0,
+      POLLIN,
+      0
+    },
+    {
+      sockfd,
+      POLLIN,
+      0
+    }
+  };
+  
+  for (;;) {
+   char buffer[256] = { 0 };
+  
+   poll(fds, 2, 50000);
+  
+   if (fds[0].revents & POLLIN) {
+     read(0, buffer, 255);
+     send(sockfd, buffer, 255, 0);
+   } else if (fds[1].revents & POLLIN) {
+     if (recv(sockfd, buffer, 255, 0) == 0) {
+        return;
+      }
+     printf("%s\n", buffer);
+   }
+  }
 }
 
 void initServer(Args args) {
