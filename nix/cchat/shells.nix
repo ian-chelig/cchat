@@ -17,17 +17,21 @@
       "${inputs.std.inputs.devshell}/extra/language/c.nix"
     ];
 
+    language.c.compiler = nixpkgs.gcc;
+
+
+
    commands = with nixpkgs; [
-        {
-          package = cmake;
-          category = "build tools";
-        }
         {
           package = gdb;
           category = "build tools";
         }
         {
           package = clang-tools;
+          category = "build tools";
+        }
+        {
+          package = gnumake;
           category = "build tools";
         }
         {
