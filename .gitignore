@@ -1,0 +1,4 @@
+*/*.o
+cchat
+chat-client
+chat-server
