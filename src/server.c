@@ -21,21 +21,30 @@ void *setupLocalClient(void *arg) {
 void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   char buffer[255] = { 0 };
-  int clientfd = (*args->array)[args->index];
-  while(read(clientfd, buffer, 255) > 0) { //(*args).clientfd (equivalent)
-    for(int i = 0; i < *(args->length); i++) {
-      int peer = (*args->array)[i];
-      if (peer == clientfd || peer == 0) {
+  int clientfd = args->clientfd;
+  while (read(clientfd, buffer, 255) > 0) {
+    fdNode_t *current = args->start->next;
+    while (current != NULL) {
+      if (current->fd == clientfd) {
+        current = current->next;
         continue;
       }
-      send(peer, buffer, 255, 0);
+      send(current->fd, buffer, 255, 0);
+      current = current->next;
     }
   }
 
-  (*args->array)[args->index] = -1;
-  free(arg);
-}
+  fdNode_t *clientNode = args->clientNode;
+  fdNode_t *tmp = clientNode->next->prev;
+  clientNode->prev->next = clientNode->next;
+  if (clientNode->next != NULL) {
+    clientNode->next->prev = tmp;
+  } else {
+    clientNode->prev = NULL;
+  }
+  free(clientNode);
 
+}
 
 void initServer(Args args) {
   printf("Initializing Server\n");
@@ -51,26 +60,25 @@ void initServer(Args args) {
   int res = bind (sockfd, (struct sockaddr *)&address, sizeof(address));
   res = listen(sockfd, 10);
   
-  int *clientFdArray = calloc(sizeof(int),  8);
-  int clientFdArrayLen = 8;
-  int clientFdArrayIndex = 0;
+  fdNode_t *start = &((fdNode_t) {.fd = -1, .next = NULL, .prev = NULL});
+  fdNode_t *end = start;
 
   for(;;) {
-    clientFdArray[clientFdArrayIndex] = accept(sockfd, 0, 0);
-    
+    int clientfd = accept(sockfd, 0, 0);
     pthread_t newThread;
     struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs)); //NEEDS R/W LOCK
-    *args = (struct connectionArgs) {
-      .array = &clientFdArray,
-      .index = clientFdArrayIndex,
-      .length = &clientFdArrayLen
+    fdNode_t *newConnection = (fdNode_t *)malloc(sizeof(fdNode_t));
+    *newConnection = (fdNode_t) {
+      .fd = clientfd,
+      .prev = end,
+      .next = NULL
     };
-    clientFdArrayIndex++;
-    if (clientFdArrayIndex == clientFdArrayLen) {
-      //resize
-      clientFdArrayLen *= 2;
-      clientFdArray = realloc(clientFdArray, sizeof(int) * clientFdArrayLen);
-    }
+    end->next = newConnection;
+    *args = (struct connectionArgs) {
+      .clientfd = clientfd,
+      .start = start,
+      .clientNode = newConnection
+    };
 
     int result = pthread_create(&newThread, NULL, handleConnection, args);
   }
