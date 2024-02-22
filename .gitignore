@@ -2,3 +2,6 @@ build/*
 cchat
 cchat-dbg
 .data/
+.cache/
+.run/
+.bin/
