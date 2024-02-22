@@ -60,7 +60,7 @@ void initServer(Args args) {
       .length = &clientFdArrayLen
     };
     clientFdArrayIndex++;
-    if (clientFdArrayIndex = clientFdArrayLen - 1) {
+    if (clientFdArrayIndex == clientFdArrayLen - 1) {
       //resize
       clientFdArrayLen *= 2;
       clientFdArray = realloc(clientFdArray, sizeof(int) * clientFdArrayLen);
