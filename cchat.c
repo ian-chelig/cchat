@@ -13,6 +13,8 @@ typedef struct Args {
 } Args;
 
 void initClient(Args args) {
+  printf("Initializing Client\n");
+  fflush(stdout);
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   struct sockaddr_in address = {
@@ -55,7 +57,7 @@ void initClient(Args args) {
 }
 
 void initServer(Args args) {
-  printf("Initializing Server");
+  printf("Initializing Server\n");
   fflush(stdout);
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
