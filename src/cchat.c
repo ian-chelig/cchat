@@ -11,7 +11,7 @@
 #include "server.h"
 
 void printUsage () {
-  printf("Usage: cchat -p <port> [-s | -c <address>]");
+  printf("Usage: cchat -p <port> [-s | -c <address>] [-h]");
   exit(2);
 }
 
@@ -33,7 +33,7 @@ Args handleArgs (Args args) {
 
 Args parseArgs (int argc, char **argv) {
   int opt;
-  Args args = (Args) {.s = 0, .c = NULL, .port = -1};
+  Args args = (Args) {.s = 0, .c = NULL, .port = -1, .h = 0};
 
   while((opt = getopt (argc, argv, ":sc:p:")) != -1) {
     switch (opt) {
@@ -45,6 +45,9 @@ Args parseArgs (int argc, char **argv) {
         break;
       case 'p':
         sscanf(optarg, "%hd", &args.port);
+        break;
+      case 'h':
+        args.h = 1;
         break;
       case ':':
         printf("%c option needs a value\n", optopt);
