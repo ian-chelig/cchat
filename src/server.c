@@ -22,10 +22,10 @@ void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   char buffer[255] = { 0 };
   int clientfd = (*args->array)[args->index];
-  while(read(clientfd, buffer, 255) != -1) { //(*args).clientfd (equivalent)
+  while(read(clientfd, buffer, 255) > 0) { //(*args).clientfd (equivalent)
     for(int i = 0; i < *(args->length); i++) {
       int peer = (*args->array)[i];
-      if (peer == clientfd) {
+      if (peer == clientfd || peer == 0) {
         continue;
       }
       send(peer, buffer, 255, 0);
@@ -51,13 +51,12 @@ void initServer(Args args) {
   int res = bind (sockfd, (struct sockaddr *)&address, sizeof(address));
   res = listen(sockfd, 10);
   
-  int *clientFdArray = malloc(sizeof(int) * 8);
+  int *clientFdArray = calloc(sizeof(int),  8);
   int clientFdArrayLen = 8;
   int clientFdArrayIndex = 0;
 
   for(;;) {
-    int clientfd = accept(sockfd, 0, 0);
-    clientFdArray[clientFdArrayIndex] = clientfd;
+    clientFdArray[clientFdArrayIndex] = accept(sockfd, 0, 0);
     
     pthread_t newThread;
     struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs)); //NEEDS R/W LOCK
@@ -75,7 +74,4 @@ void initServer(Args args) {
 
     int result = pthread_create(&newThread, NULL, handleConnection, args);
   }
-  
-  
-  
 }
