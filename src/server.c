@@ -21,10 +21,10 @@ void *setupLocalClient(void *arg) {
 void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   char buffer[255] = { 0 };
-  int clientfd = args->array[args->index];
+  int clientfd = (*args->array)[args->index];
   while(read(clientfd, buffer, 255) != -1) { //(*args).clientfd (equivalent)
     for(int i = 0; i < *(args->length); i++) {
-      int peer = args->array[i];
+      int peer = (*args->array)[i];
       if (peer == clientfd) {
         continue;
       }
@@ -32,7 +32,7 @@ void *handleConnection(void *arg) {
     }
   }
 
-  args->array[args->index] = -1;
+  (*args->array)[args->index] = -1;
   free(arg);
 }
 
@@ -60,14 +60,14 @@ void initServer(Args args) {
     clientFdArray[clientFdArrayIndex] = clientfd;
     
     pthread_t newThread;
-    struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
+    struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs)); //NEEDS R/W LOCK
     *args = (struct connectionArgs) {
-      .array = clientFdArray,
+      .array = &clientFdArray,
       .index = clientFdArrayIndex,
       .length = &clientFdArrayLen
     };
     clientFdArrayIndex++;
-    if (clientFdArrayIndex == clientFdArrayLen - 1) {
+    if (clientFdArrayIndex == clientFdArrayLen) {
       //resize
       clientFdArrayLen *= 2;
       clientFdArray = realloc(clientFdArray, sizeof(int) * clientFdArrayLen);

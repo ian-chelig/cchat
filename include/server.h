@@ -6,7 +6,7 @@
 struct connectionArgs {
   int index;
   int *length;
-  int *array;
+  int **array;
 };
 
 void *setupLocalClient(void *arg);
