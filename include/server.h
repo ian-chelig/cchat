@@ -5,15 +5,15 @@
 
 
 typedef struct fdNode {
-    int fd;
     struct fdNode *next;
     struct fdNode *prev;
+    int fd;
 } fdNode_t;
 
 struct connectionArgs {
-  int clientfd;
   fdNode_t *start;
   fdNode_t *clientNode;
+  int clientfd;
 };
 
 void *setupLocalClient(void *arg);
