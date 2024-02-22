@@ -8,16 +8,17 @@
 
 typedef struct Args {
   int s;
-  char *port, *c;
+  short port;
+  char *c;
 } Args;
 
 void initClient(Args args) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   struct sockaddr_in address = {
-    AF_INET,
-    htons((int) args.port), // Error check this!
-    0
+    .sin_family = AF_INET,
+    .sin_port = htons(args.port), // Error check this!
+    .sin_addr = inet_addr(args.c)
   };
 
   connect(sockfd, &address, sizeof(address));
@@ -25,16 +26,17 @@ void initClient(Args args) {
 
 void initServer(Args args) {
   printf("Initializing Server");
+  fflush(stdout);
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   struct sockaddr_in address = {
-    AF_INET,
-    htons(1000), // Error check this!
-    0
+    .sin_family = AF_INET,
+    .sin_port = htons(args.port), // Error check this!
+    .sin_addr = INADDR_ANY
   };
   
-  bind (sockfd, &address, sizeof(address));
-  listen(sockfd, 10);
+  int res = bind (sockfd, &address, sizeof(address));
+  res = listen(sockfd, 10);
   int clientfd = accept(sockfd, 0, 0);
   
   // stdin - 0
@@ -103,7 +105,7 @@ Args parseArgs (int argc, char **argv) {
         args.c = optarg;
         break;
       case 'p':
-        args.port = optarg;
+        sscanf(optarg, "%hd", &args.port);
         break;
       case ':':
         printf("%c option needs a value\n", optopt);
