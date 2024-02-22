@@ -17,7 +17,7 @@ void initClient(Args args) {
     .sin_addr = inet_addr(args.c)
   };
 
-  connect(sockfd, (struct sockaddr *)&address, sizeof(address));
+  int result = connect(sockfd, (struct sockaddr *)&address, sizeof(address));
 
   // stdin - 0
   struct pollfd fds[2] = {

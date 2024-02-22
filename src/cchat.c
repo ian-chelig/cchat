@@ -23,10 +23,10 @@ void processArgs (Args args) {
       pthread_t clientThread;
       Args a = {
         .c = "127.0.0.1",
-        .port = htons(args.port),
+        .port = args.port,
         .s = 0
       };
-      pthread_create(&clientThread, NULL, clientThread, &a);
+      pthread_create(&clientThread, NULL, setupLocalClient, &a);
     }
     initServer(args);
   }

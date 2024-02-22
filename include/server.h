@@ -9,6 +9,7 @@ struct connectionArgs {
   int *array;
 };
 
+void *setupLocalClient(void *arg);
 void initServer(Args args);
 
 #endif

@@ -9,6 +9,13 @@
 
 #include "args.h"
 #include "server.h"
+#include "client.h"
+
+void *setupLocalClient(void *arg) {
+  Args *a = (Args *)arg;
+  initClient(*a);
+  return NULL;
+}
 
 
 void *handleConnection(void *arg) {
