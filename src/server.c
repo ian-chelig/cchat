@@ -18,6 +18,15 @@ void *setupLocalClient(void *arg) {
   return NULL;
 }
 
+void parseCommand(char *buffer, fdNode_t *current) {
+  if (!strncmp(buffer, "/nick", 5)) {
+    char nick[255] = { 0 };
+    sscanf(buffer, "/nick %s", nick);
+    char *tmp = malloc(strlen(nick) + 1);
+    strcpy(tmp, nick);
+    current->clientName = tmp;
+  }
+}
 
 void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
@@ -33,7 +42,18 @@ void *handleConnection(void *arg) {
         current = current->next;
         continue;
       }
-      send(current->fd, buffer, 255, 0); //send to other clients
+      
+      if (buffer[0] == '/') {
+        parseCommand(buffer, current);
+        current = current->next;
+        continue;
+      }
+
+      char nBuf[256] = { 0 };
+      sprintf(nBuf, "%s: %s", current->clientName, buffer);
+      if (buffer != NULL) {
+        send(current->fd, nBuf, 255, 0); //send to other clients
+      }
       current = current->next;
     }
   }
@@ -46,8 +66,10 @@ void *handleConnection(void *arg) {
   if (tmpnext != NULL) {
     tmpnext->prev = tmpprev;
   }
+  free(clientNode->clientName);
   free(clientNode);
 
+  return NULL;
 }
 
 void initServer(Args args) {
@@ -71,8 +93,8 @@ void initServer(Args args) {
     printf("%s\n", strerror(errno));
   }
   
-  //create heat
-  fdNode_t *start = &((fdNode_t) {.fd = -1, .next = NULL, .prev = NULL}); //ADD R/W LOCK TO NODES
+  //create head
+  fdNode_t *start = &((fdNode_t) {.fd = -1, .clientName = NULL, .next = NULL, .prev = NULL}); //ADD R/W LOCK TO NODES
   fdNode_t *end = start;
 
   for(;;) {
@@ -82,6 +104,7 @@ void initServer(Args args) {
     fdNode_t *newConnection = (fdNode_t *)malloc(sizeof(fdNode_t));
     *newConnection = (fdNode_t) {
       .fd = clientfd,
+      .clientName = args.u,
       .prev = end,
       .next = NULL
     };
@@ -92,6 +115,7 @@ void initServer(Args args) {
     struct connectionArgs *args = (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
     *args = (struct connectionArgs) {
       .clientfd = clientfd,
+      .clientName = args->clientName,
       .start = start,
       .clientNode = newConnection
     };

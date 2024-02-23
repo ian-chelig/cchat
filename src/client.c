@@ -7,7 +7,7 @@
 #include "args.h"
 
 void initClient(Args args) {
-  printf("Initializing Client\n");
+  printf("Initializing Client\n\n");
   fflush(stdout);
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -34,7 +34,12 @@ void initClient(Args args) {
       0
     }
   };
-  
+
+  //set username
+  char nBuf[256] = { 0 };
+  sprintf(nBuf, "/nick %s", args.u);
+  send(sockfd, nBuf, 255, 0);
+
   for (;;) {
    char buffer[256] = { 0 };
   
@@ -47,7 +52,7 @@ void initClient(Args args) {
      if (recv(sockfd, buffer, 255, 0) == 0) {
         return;
       }
-     printf("%s\n", buffer);
+     printf("%s", buffer);
    }
   }
 }

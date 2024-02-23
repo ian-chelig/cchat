@@ -7,7 +7,8 @@ typedef struct Args {
   int s;
   short port;
   char *c;
-  int h;
+  char *u;
+  int d;
 } Args;
 
 #endif

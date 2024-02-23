@@ -5,15 +5,17 @@
 
 
 typedef struct fdNode {
+    int fd;
+    char *clientName;
     struct fdNode *next;
     struct fdNode *prev;
-    int fd;
 } fdNode_t;
 
 struct connectionArgs {
+  int clientfd;
+  char *clientName;
   fdNode_t *start;
   fdNode_t *clientNode;
-  int clientfd;
 };
 
 void *setupLocalClient(void *arg);
