@@ -3,12 +3,11 @@
 
 #include "args.h"
 
-
 typedef struct fdNode {
-    int fd;
-    char *clientName;
-    struct fdNode *next;
-    struct fdNode *prev;
+  int fd;
+  char *clientName;
+  struct fdNode *next;
+  struct fdNode *prev;
 } fdNode_t;
 
 struct connectionArgs {
