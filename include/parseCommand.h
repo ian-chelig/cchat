@@ -3,6 +3,6 @@
 
 #include "args.h"
 
-void parseCommand(char *buffer);
+void parseCommand(char *buffer, int sockfd);
 
 #endif

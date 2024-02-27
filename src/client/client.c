@@ -35,7 +35,7 @@ void initClient(Args args) {
     if (fds[0].revents & POLLIN) {
       read(0, buffer, 255);
       if (buffer[0] == '/')
-        parseCommand(buffer);
+        parseCommand(buffer, sockfd);
       else
         send(sockfd, buffer, 255, 0);
     } else if (fds[1].revents & POLLIN) {

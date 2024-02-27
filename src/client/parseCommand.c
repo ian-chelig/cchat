@@ -8,9 +8,8 @@
 #include "parseCommand.h"
 #include "server.h"
 
-void parseCommand(char *buffer) {
+void parseCommand(char *buffer, int sockfd) {
   if (!strncmp(buffer, "/nick", 5)) {
-
   } else if (!strncmp(buffer, "/stamp", 6)) {
   }
 }
