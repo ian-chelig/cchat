@@ -9,7 +9,10 @@
 #include <unistd.h>
 
 #include "args.h"
+#include "cbor_functions.h"
 #include "client.h"
+#include "handler.h"
+#include "parser.h"
 #include "server.h"
 
 void *setupLocalClient(void *arg) {
@@ -18,55 +21,49 @@ void *setupLocalClient(void *arg) {
   return NULL;
 }
 
-void parseCommand(char *buffer, fdNode_t *current) {
-  if (!strncmp(buffer, "/nick", 5)) {
-    char nick[255] = {0};
-    sscanf(buffer, "/nick %s", nick);
-    char *tmp = malloc(strlen(nick) + 1);
-    strcpy(tmp, nick);
-    current->clientName = tmp;
-  }
-}
-
 void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
+  user_t user;
+  // GENERATE A UID
+  // COLLECT A NICK
+  // MALLOC THE USER
+
   char buffer[255] = {0};
+  char nick[33] = {0};
   int clientfd = args->clientfd;
 
   // handle initial connection setup
 
   while (read(clientfd, buffer, 255) > 0) { // while connection not dead
-    fdNode_t *current = args->start->next;
+    cbor_item_t *item =
+        deserializeData((size_t)strlen(buffer), (unsigned char *)buffer);
+    Command cmd = createCommandFromItem(item);
+    user_t *user = args->clientNode;
+    handleCommand(cmd, *user);
+    char *deserialized = deserializeBuffer(buffer);
+    unsigned char *serialized =
+        serializeData(sizeof(char) * strlen(deserialized), item);
+
+    user_t *current = args->start->next;
     while (current != NULL) {        // traverse linked list
       if (current->fd == clientfd) { // don't send back to sending client
         current = current->next;
         continue;
       }
 
-      if (buffer[0] == '/') {
-        parseCommand(buffer, current);
-        current = current->next;
-        continue;
-      }
-
-      char nBuf[256] = {0};
-      sprintf(nBuf, "%s: %s", current->clientName, buffer);
-      if (buffer != NULL) {
-        send(current->fd, nBuf, 255, 0); // send to other clients
-      }
+      send(current->fd, serialized, 255, 0); // send to other clients
       current = current->next;
     }
   }
 
   // remove client node from linked list, heal the linked list
-  fdNode_t *clientNode = args->clientNode;
-  fdNode_t *tmpprev = clientNode->prev;
-  fdNode_t *tmpnext = clientNode->next;
+  user_t *clientNode = args->clientNode;
+  user_t *tmpprev = clientNode->prev;
+  user_t *tmpnext = clientNode->next;
   tmpprev->next = tmpnext;
   if (tmpnext != NULL) {
     tmpnext->prev = tmpprev;
   }
-  free(clientNode->clientName);
   free(clientNode);
 
   return NULL;
@@ -75,7 +72,12 @@ void *handleConnection(void *arg) {
 void initServer(Args args) {
   printf("Initializing Server\n");
   fflush(stdout);
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  int sockfd;
+
+  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) > 0) {
+    printf("Could not create socket!\n");
+    printf("%s\n", strerror(errno));
+  }
 
   struct sockaddr_in address = {.sin_family = AF_INET,
                                 .sin_port = htons(args.port),
@@ -91,32 +93,31 @@ void initServer(Args args) {
   }
 
   // create head
-  fdNode_t *start = &((fdNode_t){.fd = -1,
-                                 .clientName = NULL,
-                                 .next = NULL,
-                                 .prev = NULL}); // ADD R/W LOCK TO NODES
-  fdNode_t *end = start;
+  user_t *start = &((user_t){.fd = -1,
+                             .next = NULL,
+                             .prev = NULL,
+                             .uid = -1,
+                             .nick = ""}); // ADD R/W LOCK TO NODES
+  user_t *end = start;
 
   for (;;) {
     int clientfd = accept(sockfd, 0, 0);
 
     // create new connection entry in linked list
-    fdNode_t *newConnection = (fdNode_t *)malloc(sizeof(fdNode_t));
-    *newConnection = (fdNode_t){
-        .fd = clientfd, .clientName = args.u, .prev = end, .next = NULL};
+    user_t *newConnection = (user_t *)malloc(sizeof(user_t));
+    *newConnection = (user_t){
+        .fd = clientfd, .prev = end, .next = NULL, .uid = -1, .nick = ""};
     end->next = newConnection;
     end = end->next;
 
     // provide proper information to connection handler thread
-    struct connectionArgs *args =
+    struct connectionArgs *connArgs =
         (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
-    *args = (struct connectionArgs){.clientfd = clientfd,
-                                    .clientName = args->clientName,
-                                    .start = start,
-                                    .clientNode = newConnection};
+    *connArgs = (struct connectionArgs){
+        .clientfd = clientfd, .start = start, .clientNode = newConnection};
 
     pthread_t newThread;
-    if (pthread_create(&newThread, NULL, handleConnection, args) < 0) {
+    if (pthread_create(&newThread, NULL, handleConnection, connArgs) < 0) {
       printf("Could not create connection handler thread!\n");
       printf("%s\n", strerror(errno));
     }

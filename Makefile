@@ -1,5 +1,5 @@
 CC:=gcc
-CFLAGS:= -I include/
+CFLAGS:= -I include/ -ggdb
 BUILDDIR=build
 SRCDIR=src
 
@@ -10,7 +10,7 @@ OBJECTS:=$(CSOURCES:src/%.c=$(BUILDDIR)/%.o)
 DBGOBJECTS:=$(CSOURCES:src/%.c=$(BUILDDIR)/dbg%.o)
 
 cchat: $(OBJECTS)
-	gcc -o cchat $(OBJECTS)
+	gcc -o cchat $(OBJECTS) -l cbor
 
 cchat-dbg: $(DBGOBJECTS)
 	gcc -g -o cchat-dbg $(DBGOBJECTS)
@@ -21,7 +21,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 
 $(BUILDDIR)/dbg%.o: $(SRCDIR)/%.c
 	mkdir -p $(BUILDDIRS)
-	gcc -c $(CFLAGS) -g $< -o $@
+	gcc -c $(CFLAGS) $< -o $@
 
 clean:
 	rm -rf $(BUILDDIR)
