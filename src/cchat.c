@@ -7,9 +7,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "../include/args.h"
-#include "../include/client.h"
-#include "../include/server.h"
+#include "args.h"
+#include "client.h"
+#include "server.h"
 
 void printUsage() {
   printf("Usage: cchat -p <port> [-s | -c <address>] [-h] [-d] [-u]");

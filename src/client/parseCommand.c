@@ -5,8 +5,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <../include/parseCommand.h>
-#include <../include/server.h>
+#include "parseCommand.h"
+#include "server.h"
 
 void parseCommand(char *buffer) {
   if (!strncmp(buffer, "/nick", 5)) {

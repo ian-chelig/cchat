@@ -4,7 +4,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "../include/args.h"
+#include "args.h"
+#include "parseCommand.h"
 
 void initClient(Args args) {
   printf("Initializing Client\n\n");
@@ -30,16 +31,16 @@ void initClient(Args args) {
 
   for (;;) {
     char buffer[256] = {0};
-
     poll(fds, 2, 50000);
-
     if (fds[0].revents & POLLIN) {
       read(0, buffer, 255);
-      send(sockfd, buffer, 255, 0);
+      if (buffer[0] == '/')
+        parseCommand(buffer);
+      else
+        send(sockfd, buffer, 255, 0);
     } else if (fds[1].revents & POLLIN) {
-      if (recv(sockfd, buffer, 255, 0) == 0) {
+      if (recv(sockfd, buffer, 255, 0) == 0)
         return;
-      }
       printf("%s", buffer);
     }
   }
