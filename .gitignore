@@ -5,3 +5,5 @@ cchat-dbg
 .cache/
 .run/
 .bin/
+.clangd
+compile_commands.json
