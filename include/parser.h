@@ -5,5 +5,6 @@
 #include "command.h"
 
 Command createCommandFromBuffer(char *buffer);
+unsigned char *serializeBuffer(char *buffer);
 
 #endif

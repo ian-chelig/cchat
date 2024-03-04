@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -32,24 +33,35 @@ void initClient(Args args) {
   send(sockfd, nBuf, 255, 0);
   struct Command cmd;
   cbor_item_t item;
+  unsigned char *serialized = NULL;
 
   for (;;) {
     char buffer[256] = {0};
     poll(fds, 2, 50000);
     if (fds[0].revents & POLLIN) {
       read(0, buffer, 255);
-      if (buffer[0] == '/') {
+
+      if (buffer[0] != '/') {
+        serialized = serializeBuffer(buffer);
         send(sockfd, buffer, 255, 0);
-      } else {
-        cmd = createCommandFromBuffer(buffer);
-        item = *createItemFromCommand(cmd);
-        unsigned char *serialized = serializeData(cmd.argc, &item);
-        send(sockfd, serialized, 255, 0);
       }
+
+      if (strncmp(buffer, "/nick", 5)) {
+        serialized = serializeBuffer(buffer);
+        send(sockfd, buffer, 255, 0);
+      } else if (strncmp(buffer, "/stamp", 6)) {
+        // client side handle timestamp toggling.
+        serialized = serializeBuffer(buffer);
+        send(sockfd, buffer, 255, 0);
+      }
+
     } else if (fds[1].revents & POLLIN) {
       if (recv(sockfd, buffer, 255, 0) == 0)
         return;
+      // deserializeBuffer();
       printf("%s", buffer);
     }
+
+    fflush(stdout);
   }
 }
