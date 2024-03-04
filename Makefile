@@ -10,7 +10,7 @@ OBJECTS:=$(CSOURCES:src/%.c=$(BUILDDIR)/%.o)
 DBGOBJECTS:=$(CSOURCES:src/%.c=$(BUILDDIR)/dbg%.o)
 
 cchat: $(OBJECTS)
-	gcc -o cchat $(OBJECTS)
+	gcc -o cchat $(OBJECTS) -l cbor
 
 cchat-dbg: $(DBGOBJECTS)
 	gcc -g -o cchat-dbg $(DBGOBJECTS)

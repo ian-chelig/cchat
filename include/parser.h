@@ -2,7 +2,8 @@
 #define PARSECOMMAND_H
 
 #include "args.h"
+#include "command.h"
 
-void parseCommand(char *buffer, int sockfd);
+Command createCommandFromBuffer(char *buffer);
 
 #endif

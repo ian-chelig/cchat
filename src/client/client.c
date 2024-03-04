@@ -5,7 +5,9 @@
 #include <unistd.h>
 
 #include "args.h"
-#include "parseCommand.h"
+#include "cbor_functions.h"
+#include "command.h"
+#include "parser.h"
 
 void initClient(Args args) {
   printf("Initializing Client\n\n");
@@ -28,16 +30,22 @@ void initClient(Args args) {
   char nBuf[256] = {0};
   sprintf(nBuf, "/nick %s", args.u);
   send(sockfd, nBuf, 255, 0);
+  struct Command cmd;
+  cbor_item_t item;
 
   for (;;) {
     char buffer[256] = {0};
     poll(fds, 2, 50000);
     if (fds[0].revents & POLLIN) {
       read(0, buffer, 255);
-      if (buffer[0] == '/')
-        parseCommand(buffer, sockfd);
-      else
+      if (buffer[0] == '/') {
         send(sockfd, buffer, 255, 0);
+      } else {
+        cmd = createCommandFromBuffer(buffer);
+        item = *createItemFromCommand(cmd);
+        unsigned char *serialized = serializeData(cmd.argc, &item);
+        send(sockfd, serialized, 255, 0);
+      }
     } else if (fds[1].revents & POLLIN) {
       if (recv(sockfd, buffer, 255, 0) == 0)
         return;
