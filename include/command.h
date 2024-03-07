@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 typedef struct Command {
-  char *key;
+  char *command;
   char **args;
   size_t argc;
 } Command;

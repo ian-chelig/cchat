@@ -34,9 +34,9 @@ cbor_item_t *deserializeData(size_t length, unsigned char *buffer) {
 cbor_item_t *createItemFromCommand(Command cmd) {
   cbor_item_t *map = cbor_new_definite_map(2);
 
-  (void)cbor_map_add(map,
-                     (struct cbor_pair){.key = cbor_build_string(cmd.key),
-                                        .value = cbor_build_string(cmd.key)});
+  (void)cbor_map_add(
+      map, (struct cbor_pair){.key = cbor_build_string("command"),
+                              .value = cbor_build_string(cmd.command)});
 
   cbor_item_t *args_array = cbor_new_definite_array(cmd.argc);
   for (size_t i = 0; i < cmd.argc; i++) {
@@ -79,18 +79,26 @@ char **getKeysFromMap(cbor_item_t *buffer) {
 
   return dest;
 }
+
 Command createCommandFromItem(cbor_item_t *item) {
   Command cmd;
   struct cbor_pair *pairs = cbor_map_handle(item);
   size_t mapSize = cbor_map_size(item);
   cmd.argc = 0;
   cmd.args = NULL;
+  cbor_describe(item, stdout);
 
   for (size_t i = 0; i < mapSize; i++) {
-    if (cbor_isa_string(pairs[i].key)) {
-      unsigned char *key = cbor_string_handle(pairs[i].key);
-      cmd.key = strdup((const char *)key);
-    } else if (cbor_isa_array(pairs[i].value)) {
+    if (!strncmp((char *)cbor_string_handle(pairs[i].key), "command", 7)) {
+      cmd.command = strdup((const char *)cbor_string_handle(pairs[i].value));
+    } else if (!strncmp((char *)cbor_string_handle(pairs[i].key), "args", 4)) {
+      if (!cbor_isa_array(pairs[i].value)) { // better way to do this is to
+                                             // return int as an err level
+        errMsg("args field is not array!");  // pass in a pointer to a command
+                                             // struct to be written to
+        _exit(errno);
+      }
+
       size_t arraySize = cbor_array_size(pairs[i].value);
       cmd.argc = arraySize;
       cmd.args = malloc(arraySize * sizeof(char *)); // Allocate memory for args
@@ -105,9 +113,9 @@ Command createCommandFromItem(cbor_item_t *item) {
       }
     }
   }
-
   return cmd;
 }
+
 char **getValueFromKey(cbor_item_t *map, char *key) {
   struct cbor_pair *pairs = cbor_map_handle(map);
   size_t mapSize = cbor_map_size(map);
@@ -137,7 +145,7 @@ char **getValueFromKey(cbor_item_t *map, char *key) {
 }
 
 void freeCommand(Command cmd) {
-  free(cmd.key);
+  free(cmd.command);
   if (cmd.args != NULL) {
     for (size_t i = 0; i < cmd.argc; i++) {
       free(cmd.args[i]);

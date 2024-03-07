@@ -2,9 +2,11 @@
 #define SERVER_H
 
 #include "args.h"
+#include "user.h"
 
 typedef struct fdNode {
   int fd;
+  User user;
   struct fdNode *next;
   struct fdNode *prev;
 } fdNode_t;

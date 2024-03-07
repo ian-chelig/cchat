@@ -11,22 +11,29 @@
 #include "parser.h"
 #include "server.h"
 #include "tlpi_hdr.h"
-/*
+
 unsigned char *deserializeBuffer(char *buffer) {
   cbor_item_t item =
       *deserializeData(strlen((const char *)buffer), (unsigned char *)buffer);
-  Command cmd = createCommandFromItem(&item);
-  // createBufferFromCommand and return it
+  return createBufferFromCommand(item);
 }
-*/
 
 unsigned char *serializeBuffer(char *buffer) {
-  Command cmd = createCommandFromBuffer(buffer);
+  Command cmd = createCommandFromPlaintext(buffer);
   cbor_item_t item = *createItemFromCommand(cmd);
   return serializeData(cmd.argc, &item);
 }
 
-Command createCommandFromBuffer(char *buffer) {
+unsigned char *createBufferFromCommand(cbor_item_t item) {
+  unsigned char *buffer = {0};
+
+  return buffer;
+}
+
+/*
+ * Takes a plaintext buffer and turns it into a command struct
+ */
+Command createCommandFromPlaintext(char *buffer) {
   Command cmd;
   cmd.argc = 0;
   cmd.args = NULL;
@@ -38,9 +45,9 @@ Command createCommandFromBuffer(char *buffer) {
   }
 
   if (token[0] == '/') {
-    cmd.key = strdup(token + 1);
+    cmd.command = strdup(token + 1);
   } else {
-    cmd.key = strdup("message");
+    cmd.command = strdup("message");
     cmd.args = malloc(sizeof(char *));
     if (cmd.args == NULL) {
       perror("Error allocating memory");

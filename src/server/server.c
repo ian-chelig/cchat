@@ -9,8 +9,12 @@
 #include <unistd.h>
 
 #include "args.h"
+#include "cbor_functions.h"
 #include "client.h"
+#include "parser.h"
 #include "server.h"
+#include "server_handler.h"
+#include "user.h"
 
 void *setupLocalClient(void *arg) {
   Args *a = (Args *)arg;
@@ -20,6 +24,11 @@ void *setupLocalClient(void *arg) {
 
 void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
+  User user;
+  // GENERATE A UID
+  // COLLECT A NICK
+  // MALLOC THE USER
+
   char buffer[255] = {0};
   char nick[33] = {0};
   int clientfd = args->clientfd;
@@ -27,6 +36,11 @@ void *handleConnection(void *arg) {
   // handle initial connection setup
 
   while (read(clientfd, buffer, 255) > 0) { // while connection not dead
+    cbor_item_t *item =
+        deserializeData(strlen(buffer), (unsigned char *)buffer);
+    Command cmd = createCommandFromItem(item);
+    handleServerCommand(cmd, *args->clientNode);
+
     fdNode_t *current = args->start->next;
     while (current != NULL) {        // traverse linked list
       if (current->fd == clientfd) { // don't send back to sending client
@@ -80,7 +94,8 @@ void initServer(Args args) {
 
     // create new connection entry in linked list
     fdNode_t *newConnection = (fdNode_t *)malloc(sizeof(fdNode_t));
-    *newConnection = (fdNode_t){.fd = clientfd, .prev = end, .next = NULL};
+    *newConnection =
+        (fdNode_t){.fd = clientfd, .prev = end, .next = NULL, .user = NULL};
     end->next = newConnection;
     end = end->next;
 

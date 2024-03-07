@@ -26,14 +26,13 @@ void initClient(Args args) {
 
   // stdin - 0
   struct pollfd fds[2] = {{0, POLLIN, 0}, {sockfd, POLLIN, 0}};
-
   // set username
   char nBuf[256] = {0};
   sprintf(nBuf, "/nick %s", args.u);
-  send(sockfd, nBuf, 255, 0);
+  unsigned char *serialized = serializeBuffer(nBuf);
+  send(sockfd, serialized, 255, 0);
   struct Command cmd;
   cbor_item_t item;
-  unsigned char *serialized = NULL;
 
   for (;;) {
     char buffer[256] = {0};
@@ -42,19 +41,8 @@ void initClient(Args args) {
       read(0, buffer, 255);
 
       if (buffer[0] != '/') {
-        serialized = serializeBuffer(buffer);
         send(sockfd, buffer, 255, 0);
       }
-
-      if (strncmp(buffer, "/nick", 5)) {
-        serialized = serializeBuffer(buffer);
-        send(sockfd, buffer, 255, 0);
-      } else if (strncmp(buffer, "/stamp", 6)) {
-        // client side handle timestamp toggling.
-        serialized = serializeBuffer(buffer);
-        send(sockfd, buffer, 255, 0);
-      }
-
     } else if (fds[1].revents & POLLIN) {
       if (recv(sockfd, buffer, 255, 0) == 0)
         return;
