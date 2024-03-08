@@ -18,14 +18,17 @@
 
 ### Rewriting client/server to use CBOR
 
-- [ ] write client side handling for client side commands -- STARTED
-- [ ] write server side handling for server side commands -- STARTED
+- [ ] handler should be one file, taking a command and optionally a user_t
+- - [ ] (otherwise pass NULL)
+- - [ ] if it gets a user_t it was called from server, and will handle differently
 - [ ] client deserialize incomming messages and hand control over to command handler
 
 ### User Handling
 
-- [ ] change fdnode_t in server.c to the user_t
-- [ ] Build and hold users in the heap
+- [x] change fdnode_t in server.c to the user_t
+- [x] Build and hold users in the heap
+- [ ] develop generateUID(){}
+- [ ] may eventually need to develop an api for dealing with user_t
 
 ### Refactoring project to implement proper error handling
 

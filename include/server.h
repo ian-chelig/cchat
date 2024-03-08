@@ -2,19 +2,19 @@
 #define SERVER_H
 
 #include "args.h"
-#include "user.h"
 
-typedef struct fdNode {
+typedef struct user {
   int fd;
-  User user;
-  struct fdNode *next;
-  struct fdNode *prev;
-} fdNode_t;
+  int uid;
+  char *nick;
+  struct user *next;
+  struct user *prev;
+} user_t;
 
 struct connectionArgs {
   int clientfd;
-  fdNode_t *start;
-  fdNode_t *clientNode;
+  user_t *start;
+  user_t *clientNode;
 };
 
 void *setupLocalClient(void *arg);

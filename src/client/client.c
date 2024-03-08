@@ -39,15 +39,13 @@ void initClient(Args args) {
     poll(fds, 2, 50000);
     if (fds[0].revents & POLLIN) {
       read(0, buffer, 255);
-
-      if (buffer[0] != '/') {
-        send(sockfd, buffer, 255, 0);
-      }
+      unsigned char *serialized = serializeBuffer(buffer);
+      send(sockfd, serialized, 255, 0);
     } else if (fds[1].revents & POLLIN) {
       if (recv(sockfd, buffer, 255, 0) == 0)
         return;
       // deserializeBuffer();
-      printf("%s", buffer);
+      printf("%s\n", buffer);
     }
 
     fflush(stdout);

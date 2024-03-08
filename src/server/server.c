@@ -11,10 +11,9 @@
 #include "args.h"
 #include "cbor_functions.h"
 #include "client.h"
+#include "handler.h"
 #include "parser.h"
 #include "server.h"
-#include "server_handler.h"
-#include "user.h"
 
 void *setupLocalClient(void *arg) {
   Args *a = (Args *)arg;
@@ -24,7 +23,7 @@ void *setupLocalClient(void *arg) {
 
 void *handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
-  User user;
+  user_t user;
   // GENERATE A UID
   // COLLECT A NICK
   // MALLOC THE USER
@@ -37,11 +36,12 @@ void *handleConnection(void *arg) {
 
   while (read(clientfd, buffer, 255) > 0) { // while connection not dead
     cbor_item_t *item =
-        deserializeData(strlen(buffer), (unsigned char *)buffer);
+        deserializeData((size_t)strlen(buffer), (unsigned char *)buffer);
     Command cmd = createCommandFromItem(item);
-    handleServerCommand(cmd, *args->clientNode);
+    user_t *user = args->clientNode;
+    handleCommand(cmd, *user);
 
-    fdNode_t *current = args->start->next;
+    user_t *current = args->start->next;
     while (current != NULL) {        // traverse linked list
       if (current->fd == clientfd) { // don't send back to sending client
         current = current->next;
@@ -54,9 +54,9 @@ void *handleConnection(void *arg) {
   }
 
   // remove client node from linked list, heal the linked list
-  fdNode_t *clientNode = args->clientNode;
-  fdNode_t *tmpprev = clientNode->prev;
-  fdNode_t *tmpnext = clientNode->next;
+  user_t *clientNode = args->clientNode;
+  user_t *tmpprev = clientNode->prev;
+  user_t *tmpnext = clientNode->next;
   tmpprev->next = tmpnext;
   if (tmpnext != NULL) {
     tmpnext->prev = tmpprev;
@@ -69,7 +69,12 @@ void *handleConnection(void *arg) {
 void initServer(Args args) {
   printf("Initializing Server\n");
   fflush(stdout);
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  int sockfd;
+
+  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) > 0) {
+    printf("Could not create socket!\n");
+    printf("%s\n", strerror(errno));
+  }
 
   struct sockaddr_in address = {.sin_family = AF_INET,
                                 .sin_port = htons(args.port),
@@ -85,17 +90,20 @@ void initServer(Args args) {
   }
 
   // create head
-  fdNode_t *start = &((fdNode_t){
-      .fd = -1, .next = NULL, .prev = NULL}); // ADD R/W LOCK TO NODES
-  fdNode_t *end = start;
+  user_t *start = &((user_t){.fd = -1,
+                             .next = NULL,
+                             .prev = NULL,
+                             .uid = -1,
+                             .nick = ""}); // ADD R/W LOCK TO NODES
+  user_t *end = start;
 
   for (;;) {
     int clientfd = accept(sockfd, 0, 0);
 
     // create new connection entry in linked list
-    fdNode_t *newConnection = (fdNode_t *)malloc(sizeof(fdNode_t));
-    *newConnection =
-        (fdNode_t){.fd = clientfd, .prev = end, .next = NULL, .user = NULL};
+    user_t *newConnection = (user_t *)malloc(sizeof(user_t));
+    *newConnection = (user_t){
+        .fd = clientfd, .prev = end, .next = NULL, .uid = -1, .nick = ""};
     end->next = newConnection;
     end = end->next;
 

@@ -28,6 +28,7 @@ cbor_item_t *deserializeData(size_t length, unsigned char *buffer) {
     // Error handling for deserialization failure
     errExit("Deserialization failed");
   }
+  cbor_describe(item, stdout);
   return item;
 }
 
@@ -74,7 +75,7 @@ char **getKeysFromMap(cbor_item_t *buffer) {
     if (dest[i] == NULL) {
       errExit("Error allocating memory for key");
     }
-    strcpy(dest[i], (const char *)str);
+    strncpy(dest[i], (const char *)str, strLen);
   }
 
   return dest;

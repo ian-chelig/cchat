@@ -11,38 +11,48 @@
 #include "client.h"
 #include "server.h"
 
+void printHelp() {
+  printf("\nOptions");
+  printf("\n-p [port]                 Mandatory. Specify port to open on.");
+  printf("\n-c [address]              Specify opening in client mode, "
+         "attempting to connect to address given.");
+  printf(
+      "\n-s                        Default. Specify running in server mode.");
+  printf("\n-d                        Run server in daemon mode.");
+  printf("\n-u [nickname]             Set nickname to value upon connection");
+  printf("\n-h                        Display this help message.");
+  fflush(stdout);
+  exit(0);
+}
+
 void printUsage() {
   printf("Usage: cchat -p <port> [-s | -c <address>] [-h] [-d] [-u]");
-  exit(2);
+  printHelp();
 }
 
 void processArgs(Args args) {
+  if (args.port == -1)
+    printUsage();
+  if (args.u == NULL)
+    args.u = "guest";
+  if (args.c == NULL)
+    args.s = 1;
+  else
+    initClient(args);
+
   if (args.s == 1) {
-    if (!args.d) {
+    if (args.d == 0) {
       // setup own client here
+      // error check and handle the thread creation here.
       pthread_t clientThread;
       Args a = {.c = "127.0.0.1", .port = args.port, .s = 0, .u = args.u};
       pthread_create(&clientThread, NULL, setupLocalClient, &a);
     }
     initServer(args);
   }
-  if (args.c != NULL) {
-    initClient(args);
-  }
 }
 
-Args handleArgs(Args args) {
-  if (args.port == -1)
-    printUsage();
-  if (args.c == NULL)
-    args.s = 1;
-  if (args.u == NULL)
-    args.u = "guest";
-
-  return args;
-}
-
-Args parseArgs(int argc, char **argv) {
+int main(int argc, char **argv) {
   int opt;
   Args args = (Args){.s = 0, .c = NULL, .port = -1, .d = 0, .u = NULL};
 
@@ -58,6 +68,7 @@ Args parseArgs(int argc, char **argv) {
       sscanf(optarg, "%hd", &args.port);
       break;
     case 'h':
+      printUsage();
       break;
     case 'd':
       args.d = 1;
@@ -82,13 +93,6 @@ Args parseArgs(int argc, char **argv) {
     printUsage();
   }
 
-  return args;
-}
-
-int main(int argc, char **argv) {
-  Args args = parseArgs(argc, argv);
-  args = handleArgs(args);
   processArgs(args);
-
   return 0;
 }

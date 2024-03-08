@@ -12,11 +12,11 @@
 #include "server.h"
 #include "tlpi_hdr.h"
 
-unsigned char *deserializeBuffer(char *buffer) {
+/*unsigned char *deserializeBuffer(char *buffer) {
   cbor_item_t item =
       *deserializeData(strlen((const char *)buffer), (unsigned char *)buffer);
-  return createBufferFromCommand(item);
-}
+  // return
+}*/
 
 unsigned char *serializeBuffer(char *buffer) {
   Command cmd = createCommandFromPlaintext(buffer);
@@ -24,9 +24,11 @@ unsigned char *serializeBuffer(char *buffer) {
   return serializeData(cmd.argc, &item);
 }
 
-unsigned char *createBufferFromCommand(cbor_item_t item) {
-  unsigned char *buffer = {0};
-
+const char *plaintextFromMessageCMD(Command cmd) {
+  const char *buffer = {0};
+  for (int i = 0; i < cmd.argc; i++) {
+    strcat(cmd.args[i], buffer);
+  }
   return buffer;
 }
 

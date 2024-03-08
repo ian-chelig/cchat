@@ -4,6 +4,6 @@
 #include "command.h"
 #include "server.h"
 
-void handleServerCommand(Command cmd, fdNode_t clientNode);
+int handleCommand(Command cmd, user_t clientNode);
 
 #endif
