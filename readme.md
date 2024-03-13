@@ -4,7 +4,7 @@
 
 - [x] Implement CBOR
 - [x] Implement error handling from the linux programming interface
-- [ ] Rewrite client and server to use CBOR
+- [x] Rewrite client and server to use CBOR
 - [ ] User handling
 - [ ] Refactor project to use proper error handling
 - [ ] Implement RSA
@@ -15,13 +15,6 @@
 - [ ] Implement ffmpeg for collaborative watching and video chatting
 - [ ] Implement Audio chatting
 - [ ] Collaborative Coding???
-
-### Rewriting client/server to use CBOR
-
-- [ ] handler should be one file, taking a command and optionally a user_t
-- - [ ] (otherwise pass NULL)
-- - [ ] if it gets a user_t it was called from server, and will handle differently
-- [ ] client deserialize incomming messages and hand control over to command handler
 
 ### User Handling
 
