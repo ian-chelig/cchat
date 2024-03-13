@@ -1,5 +1,5 @@
 CC:=gcc
-CFLAGS:= -I include/ -ggdb
+CFLAGS:= -I include/ -g
 BUILDDIR=build
 SRCDIR=src
 

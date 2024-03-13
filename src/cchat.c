@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <errno.h>
 #include <poll.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -21,35 +22,46 @@ void printHelp() {
   printf("\n-d                        Run server in daemon mode.");
   printf("\n-u [nickname]             Set nickname to value upon connection");
   printf("\n-h                        Display this help message.");
+
   fflush(stdout);
   exit(0);
 }
 
 void printUsage() {
   printf("Usage: cchat -p <port> [-s | -c <address>] [-h] [-d] [-u]");
-  printHelp();
 }
 
-void processArgs(Args args) {
+int processArgs(Args args) {
   if (args.port == -1)
     printUsage();
   if (args.u == NULL)
     args.u = "guest";
   if (args.c == NULL)
     args.s = 1;
-  else
-    initClient(args);
+  else {
+    if ((initClient(args)) == -1) {
+      printf("\nClient exited with error code: %d", errno);
+      return -1;
+    }
+  }
 
   if (args.s == 1) {
     if (args.d == 0) {
       // setup own client here
-      // error check and handle the thread creation here.
       pthread_t clientThread;
       Args a = {.c = "127.0.0.1", .port = args.port, .s = 0, .u = args.u};
-      pthread_create(&clientThread, NULL, setupLocalClient, &a);
+      if ((pthread_create(&clientThread, NULL, (void *)setupLocalClient, &a)) <
+          0) {
+        printf("\nDaemon client exited with error code: %d", errno);
+        return -1;
+      }
     }
-    initServer(args);
+    if ((initServer(args)) == -1) {
+      printf("\nServer exited with error code: %d", errno);
+      return -1;
+    }
   }
+  return 0;
 }
 
 int main(int argc, char **argv) {
@@ -65,10 +77,11 @@ int main(int argc, char **argv) {
       args.c = optarg;
       break;
     case 'p':
-      sscanf(optarg, "%hd", &args.port);
+      sscanf(optarg, "%hd", &args.port); // check and handle?
       break;
     case 'h':
       printUsage();
+      printHelp();
       break;
     case 'd':
       args.d = 1;
@@ -81,8 +94,9 @@ int main(int argc, char **argv) {
       printUsage();
       break;
     case '?':
-      printf("unknown option: %c\n", optopt);
+      printf("Unknown option: %c\n", optopt);
       printUsage();
+      printHelp();
       break;
     }
   }
@@ -93,6 +107,10 @@ int main(int argc, char **argv) {
     printUsage();
   }
 
-  processArgs(args);
+  if ((processArgs(args)) == -1) {
+    printf("\n");
+    perror("");
+    return -1;
+  }
   return 0;
 }
