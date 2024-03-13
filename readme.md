@@ -7,6 +7,7 @@
 - [x] Rewrite client and server to use CBOR
 - [ ] User handling
 - [ ] Refactor project to use proper error handling
+- [ ] Implement SHA256
 - [ ] Implement RSA
 - [ ] Implement xz compression
 
