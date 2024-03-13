@@ -3,6 +3,6 @@
 
 #include "args.h"
 
-void initClient(Args args);
+int initClient(Args args);
 
 #endif

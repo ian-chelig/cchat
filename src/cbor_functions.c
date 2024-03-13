@@ -7,141 +7,296 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "command.h"
-#include "tlpi_hdr.h"
 
-unsigned char *serializeData(size_t length, const cbor_item_t *item) {
-  unsigned char *buffer = NULL;
-  bool success = cbor_serialize_alloc(item, &buffer, &length);
-  if (!success) {
-    // Error handling for serialization failure
-    errExit("Serialization failed");
+int serializeData(cbor_item_t *inItem, unsigned char **outBuffer) {
+  size_t len = 0;
+  if ((cbor_serialize_alloc(inItem, outBuffer, &len)) == 0) {
+    printf("\nSerialization failed");
+    fflush(stdout);
+    return -1;
   }
-  return buffer;
+
+  return 0;
 }
 
-cbor_item_t *deserializeData(size_t length, unsigned char *buffer) {
-  struct cbor_load_result result;
-  cbor_item_t *item = cbor_load(buffer, length, &result);
-  if (item == NULL) {
-    // Error handling for deserialization failure
-    errExit("Deserialization failed");
+int deserializeData(size_t len, char *inBuffer, cbor_item_t **outItem) {
+  struct cbor_load_result cbor_result;
+
+  if ((strlen(inBuffer)) == 0) {
+    printf("\nReceived empty buffer!");
+    fflush(stdout);
+    return -1;
   }
-  return item;
+
+  *outItem = cbor_load((unsigned char *)inBuffer, len, &cbor_result);
+  if (*outItem == NULL) {
+    printf("\nDeserialization failed");
+    fflush(stdout);
+    return -1;
+  }
+
+  return 0;
 }
 
-cbor_item_t *createItemFromCommand(Command cmd) {
-  cbor_item_t *map = cbor_new_definite_map(2);
+int createItemFromCommand(Command incmd, cbor_item_t *outItem) {
+  int result = -1;
+  cbor_item_t *args_array;
 
-  (void)cbor_map_add(
-      map, (struct cbor_pair){.key = cbor_build_string("command"),
-                              .value = cbor_build_string(cmd.command)});
-
-  cbor_item_t *args_array = cbor_new_definite_array(cmd.argc);
-  for (size_t i = 0; i < cmd.argc; i++) {
-    (void)cbor_array_set(args_array, i, cbor_build_string(cmd.args[i]));
+  result = cbor_map_add(
+      outItem, (struct cbor_pair){.key = cbor_build_string("command"),
+                                  .value = cbor_build_string(incmd.command)});
+  if (result == 0) {
+    printf("\nFailed to allocate command to cbor map");
+    fflush(stdout);
+    return -1;
   }
-  (void)cbor_map_add(map, (struct cbor_pair){.key = cbor_build_string("args"),
-                                             .value = args_array});
 
-  return map;
+  args_array = cbor_new_definite_array(incmd.argc);
+  if (args_array == NULL) {
+    printf("\nFailed to allocate memory for args array");
+    fflush(stdout);
+    return -1;
+  }
+
+  for (size_t i = 0; i < incmd.argc; i++) {
+    result = cbor_array_set(args_array, i, cbor_build_string(incmd.args[i]));
+    if (result == 0) {
+      printf("\nFailed to set args array");
+      fflush(stdout);
+      return -1;
+    }
+  }
+
+  result =
+      cbor_map_add(outItem, (struct cbor_pair){.key = cbor_build_string("args"),
+                                               .value = args_array});
+  if (result == 0) {
+    printf("\nFailed to add pair to map");
+    fflush(stdout);
+    return -1;
+  }
+
+  return 0;
 }
 
-char **getKeysFromMap(cbor_item_t *buffer) {
+int getKeysFromMap(cbor_item_t *buffer, char **keys) {
+  int result = -1;
+  struct cbor_pair *pairs;
+  size_t mapSize;
+
+  if (keys == NULL) {
+    printf("\nKeys is null!");
+    fflush(stdout);
+    return -1;
+  }
+
   if (buffer == NULL || !cbor_isa_map(buffer)) {
-    return NULL;
+    printf("\nBuffer is not a map!");
+    fflush(stdout);
+    return -1;
   }
 
-  struct cbor_pair *pairs = cbor_map_handle(buffer);
+  pairs = cbor_map_handle(buffer);
   if (pairs == NULL) {
-    errExit("Error accessing CBOR map");
+    printf("\nError accessing CBOR map");
+    fflush(stdout);
+    return -1;
   }
 
-  size_t mapSize = cbor_map_size(buffer);
-  char **dest = malloc(mapSize * sizeof(char *));
-  if (dest == NULL) {
-    errExit("Error allocating memory for keys");
+  mapSize = cbor_map_size(buffer);
+  if (mapSize < 1) {
+    printf("\nMap size is less than 1!");
+    fflush(stdout);
+    return -1;
   }
 
   for (size_t i = 0; i < mapSize; i++) {
-    if (!cbor_isa_string(pairs[i].key)) {
-      errExit("Expected string key in CBOR map");
+    size_t strLen;
+    unsigned char *str;
+
+    result = cbor_isa_string(pairs[i].key);
+    if (result == 0) {
+      printf("\nExpected string key in CBOR map");
+      fflush(stdout);
+      return -1;
     }
-    unsigned char *str = cbor_string_handle(pairs[i].key);
-    size_t strLen = cbor_string_length(pairs[i].key);
-    dest[i] = malloc((strLen + 1) * sizeof(char));
-    if (dest[i] == NULL) {
-      errExit("Error allocating memory for key");
+
+    str = cbor_string_handle(pairs[i].key);
+    if (str == NULL) {
+      printf("\nKey is not a string.");
+      fflush(stdout);
+      return -1;
     }
-    strncpy(dest[i], (const char *)str, strLen);
+
+    strLen = cbor_string_length(pairs[i].key);
+    if (strLen == 0) {
+      printf("\nString length is null");
+      fflush(stdout);
+      return -1;
+    }
+
+    keys[i] = malloc((strLen + 1) * sizeof(char));
+    if (keys[i] == NULL) {
+      printf("\nError allocating memory for key");
+      fflush(stdout);
+      return -1;
+    }
+
+    strncpy(keys[i], (const char *)str, strLen);
+    if (keys[i] == NULL) {
+      printf("\nCopying string failed.");
+      return -1;
+    }
   }
 
-  return dest;
+  return 0;
 }
 
-Command createCommandFromItem(cbor_item_t *item) {
-  Command cmd;
-  struct cbor_pair *pairs = cbor_map_handle(item);
-  size_t mapSize = cbor_map_size(item);
-  cmd.argc = 0;
-  cmd.args = NULL;
-  // cbor_describe(item, stdout);
+int createCommandFromItem(cbor_item_t *inItem, Command *outCmd) {
+  struct cbor_pair *pairs;
+  size_t mapSize;
+
+  pairs = cbor_map_handle(inItem);
+  if (pairs == NULL) {
+    printf("\nError accessing CBOR map");
+    fflush(stdout);
+    return -1;
+  }
+
+  mapSize = cbor_map_size(inItem);
+  if (mapSize < 1) {
+    printf("\nMap size is less than 1!");
+    fflush(stdout);
+    return -1;
+  }
+  outCmd->argc = 0;
+  // outCmd->args = NULL;
 
   for (size_t i = 0; i < mapSize; i++) {
     if (!strncmp((char *)cbor_string_handle(pairs[i].key), "command", 7)) {
-      cmd.command = strdup((const char *)cbor_string_handle(pairs[i].value));
+      outCmd->command =
+          strdup((const char *)cbor_string_handle(pairs[i].value));
+      if (outCmd->command == NULL) {
+        printf("\nString duplication failed!");
+        fflush(stdout);
+        return -1;
+      }
     } else if (!strncmp((char *)cbor_string_handle(pairs[i].key), "args", 4)) {
-      if (!cbor_isa_array(pairs[i].value)) { // better way to do this is to
-                                             // return int as an err level
-        errMsg("args field is not array!");  // pass in a pointer to a command
-                                             // struct to be written to
-        _exit(errno);
+      size_t arraySize;
+
+      if (!cbor_isa_array(pairs[i].value)) {
+        printf("\nArgs field is not an array!");
+        fflush(stdout);
+        return -1;
       }
 
-      size_t arraySize = cbor_array_size(pairs[i].value);
-      cmd.argc = arraySize;
-      cmd.args = malloc(arraySize * sizeof(char *)); // Allocate memory for args
-      if (cmd.args == NULL) {
-        perror("Error allocating memory");
-        exit(EXIT_FAILURE);
+      arraySize = cbor_array_size(pairs[i].value);
+      if (arraySize < 1) {
+        printf("\nArray not found!");
+        fflush(stdout);
+        return -1;
       }
+
+      outCmd->argc = arraySize;
+      outCmd->args =
+          malloc(arraySize * sizeof(char *)); // Allocate memory for args
+      if (outCmd->args == NULL) {
+        printf("\nError allocating memory for args!");
+        fflush(stdout);
+        return -1;
+      }
+
       for (size_t j = 0; j < arraySize; j++) {
-        unsigned char *arg =
-            cbor_string_handle(cbor_array_get(pairs[i].value, j));
-        cmd.args[j] = strdup((const char *)arg); // Copy the argument
-      }
-    }
-  }
-  return cmd;
-}
+        unsigned char *arg;
 
-char **getValueFromKey(cbor_item_t *map, char *key) {
-  struct cbor_pair *pairs = cbor_map_handle(map);
-  size_t mapSize = cbor_map_size(map);
+        arg = cbor_string_handle(cbor_array_get(pairs[i].value, j));
+        if (arg == NULL) {
+          printf("\nValue is not a string!");
+          fflush(stdout);
+          return -1;
+        }
 
-  for (size_t i = 0; i < mapSize; i++) {
-    if (cbor_isa_string(pairs[i].key)) {
-      unsigned char *mapKey = cbor_string_handle(pairs[i].key);
-      if (strcmp((const char *)mapKey, key) == 0) {
-        if (cbor_isa_array(pairs[i].value)) {
-          size_t arraySize = cbor_array_size(pairs[i].value);
-          char **values = malloc(arraySize * sizeof(char *));
-          if (values == NULL) {
-            perror("Error allocating memory");
-            exit(EXIT_FAILURE);
-          }
-          for (size_t j = 0; j < arraySize; j++) {
-            unsigned char *arg =
-                cbor_string_handle(cbor_array_get(pairs[i].value, j));
-            values[j] = strdup((const char *)arg);
-          }
-          return values;
+        outCmd->args[j] = strdup((const char *)arg); // Copy the argument
+        if (outCmd->args[j] == NULL) {
+          printf("\nString duplication failed!");
+          fflush(stdout);
+          return -1;
         }
       }
     }
   }
-  return NULL;
+  return 0;
+}
+
+int getValueFromKey(cbor_item_t *map, char *key, char **values) {
+  struct cbor_pair *pairs;
+  size_t mapSize;
+
+  pairs = cbor_map_handle(map);
+  if (pairs == NULL) {
+    printf("\nError accessing CBOR map");
+    fflush(stdout);
+    return -1;
+  }
+
+  mapSize = cbor_map_size(map);
+  if (mapSize < 1) {
+    printf("\nMap size is less than 1!");
+    fflush(stdout);
+    return -1;
+  }
+
+  for (size_t i = 0; i < mapSize; i++) {
+    size_t arraySize;
+    unsigned char *mapKey;
+
+    if (!cbor_isa_string(pairs[i].key)) {
+      printf("Pair is not a string!");
+      fflush(stdout);
+      return -1;
+    }
+
+    if (!cbor_isa_array(pairs[i].value)) {
+      printf("\nValue is not an array!");
+      fflush(stdout);
+      return -1;
+    }
+
+    arraySize = cbor_array_size(pairs[i].value);
+    if (arraySize < 1) {
+      printf("\nArray not found!");
+      fflush(stdout);
+      return -1;
+    }
+
+    mapKey = cbor_string_handle(pairs[i].key);
+    if (mapKey == NULL) {
+      printf("Map Key is not a string");
+      fflush(stdout);
+      return -1;
+    }
+    // If no match found
+    if (strncmp((const char *)mapKey, key, sizeof(char) * strlen(key)) != 0) {
+      printf("\nNo match found!");
+      fflush(stdout);
+      return -1;
+    }
+
+    for (size_t j = 0; j < arraySize; j++) {
+      unsigned char *arg;
+
+      values[j] = strdup((const char *)arg);
+      if (values[j] == NULL) {
+        printf("\nString duplication failed!");
+        fflush(stdout);
+        return -1;
+      }
+    }
+  }
+  return 0;
 }
 
 void freeCommand(Command cmd) {

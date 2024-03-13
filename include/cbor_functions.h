@@ -2,16 +2,17 @@
 #define CBOR_H
 
 #include <cbor.h>
+#include <cbor/data.h>
 #include <stddef.h>
 
 #include "command.h"
 
-unsigned char *serializeData(size_t length, const cbor_item_t *item);
-cbor_item_t *deserializeData(size_t length, unsigned char *buffer);
-cbor_item_t *createItemFromCommand(Command cmd);
-Command createCommandFromItem(cbor_item_t *item);
-char **getKeysFromMap(cbor_item_t *buffer);
-char **getValueFromKey(cbor_item_t *map, char *key);
+int serializeData(cbor_item_t *inItem, unsigned char **outBuffer);
+int deserializeData(size_t len, unsigned char *inBuffer, cbor_item_t **outItem);
+int createItemFromCommand(Command incmd, cbor_item_t *outItem);
+int getKeysFromMap(cbor_item_t *buffer, char *keys);
+int getValueFromKey(cbor_item_t *map, char *key, char *values);
+int createCommandFromItem(cbor_item_t *inItem, Command *outCmd);
 void freeCommand(Command cmd);
 void freeKeys(char **keys, size_t count);
 

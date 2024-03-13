@@ -17,6 +17,10 @@
  */
 
 int handleCommand(Command cmd, user_t *user) {
+  int result = -1;
+  char *nBuf;
+  unsigned char *oBuf;
+
   if (user == NULL) { // Handled by client
     if (strncmp(cmd.command, "message", 7) == 0) {
       // createitemfromcommand
@@ -26,9 +30,13 @@ int handleCommand(Command cmd, user_t *user) {
     }
   } else if (user != NULL) { // Handled by server
     if (strncmp(cmd.command, "message", 7) == 0) {
-      char *nBuf = plaintextFromMessageCMD(cmd);
+      result = plaintextFromMessageCMD(cmd, nBuf);
+      if (result == -1) {
+      }
       // prependString(&cmd, &user);
-      unsigned char *serlialized = serializeBuffer(nBuf);
+      result = serializeBuffer(nBuf, &oBuf);
+      if (result == -1) {
+      }
     } else if (strncmp(cmd.command, "nick", 4) == 0) {
       user->nick = cmd.args[0];
     } else if (strncmp(cmd.command, "pubkey", 6) == 0) {
