@@ -1,8 +1,11 @@
+#include <cbor/data.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "cbor_functions.h"
 #include "command.h"
+#include "parser.h"
 #include "server.h"
 
 /* Takes a Command and possibly a user_t
@@ -14,7 +17,6 @@
  */
 
 int handleCommand(Command cmd, user_t *user) {
-  printf("handleCommand");
   if (user == NULL) { // Handled by client
     if (strncmp(cmd.command, "message", 7) == 0) {
       // createitemfromcommand
@@ -24,11 +26,9 @@ int handleCommand(Command cmd, user_t *user) {
     }
   } else if (user != NULL) { // Handled by server
     if (strncmp(cmd.command, "message", 7) == 0) {
-      // createbufferfromcommand
+      char *nBuf = plaintextFromMessageCMD(cmd);
       // prependString(&cmd, &user);
-      // createcommandfrombuffer
-      // createitemfromcommand
-      // serialize and send it
+      unsigned char *serlialized = serializeBuffer(nBuf);
     } else if (strncmp(cmd.command, "nick", 4) == 0) {
       user->nick = cmd.args[0];
     } else if (strncmp(cmd.command, "pubkey", 6) == 0) {

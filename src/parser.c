@@ -12,11 +12,13 @@
 #include "server.h"
 #include "tlpi_hdr.h"
 
-/*unsigned char *deserializeBuffer(char *buffer) {
+char *deserializeBuffer(char *buffer) {
   cbor_item_t item =
       *deserializeData(strlen((const char *)buffer), (unsigned char *)buffer);
-  // return
-}*/
+  Command cmd = createCommandFromItem(&item);
+  char *nBuf = plaintextFromMessageCMD(cmd);
+  return nBuf;
+}
 
 unsigned char *serializeBuffer(char *buffer) {
   Command cmd = createCommandFromPlaintext(buffer);
@@ -24,10 +26,15 @@ unsigned char *serializeBuffer(char *buffer) {
   return serializeData(cmd.argc, &item);
 }
 
-const char *plaintextFromMessageCMD(Command cmd) {
-  const char *buffer = {0};
+char *plaintextFromMessageCMD(Command cmd) {
+  size_t len = 0;
   for (int i = 0; i < cmd.argc; i++) {
-    strcat(cmd.args[i], buffer);
+    len += strlen(cmd.args[i]);
+  }
+
+  char *buffer = malloc(sizeof(char) * (len + 1));
+  for (int i = 0; i < cmd.argc; i++) {
+    strcat(buffer, cmd.args[i]);
   }
   return buffer;
 }
@@ -39,6 +46,8 @@ Command createCommandFromPlaintext(char *buffer) {
   Command cmd;
   cmd.argc = 0;
   cmd.args = NULL;
+  char *temp = malloc(sizeof(char) * (strlen(buffer) + 1));
+  strcpy(temp, buffer);
 
   char *token = strtok(buffer, " ");
   if (token == NULL) {
@@ -55,7 +64,7 @@ Command createCommandFromPlaintext(char *buffer) {
       perror("Error allocating memory");
       exit(EXIT_FAILURE);
     }
-    cmd.args[0] = strdup(token);
+    cmd.args[0] = temp;
     cmd.argc = 1;
     return cmd;
   }

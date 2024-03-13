@@ -8,5 +8,7 @@
 
 Command createCommandFromPlaintext(char *buffer);
 unsigned char *serializeBuffer(char *buffer);
-unsigned char *createBufferFromCommand(cbor_item_t item);
+char *plaintextFromMessageCMD(Command cmd);
+char *deserializeBuffer(char *buffer);
+
 #endif

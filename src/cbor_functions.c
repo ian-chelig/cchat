@@ -28,7 +28,6 @@ cbor_item_t *deserializeData(size_t length, unsigned char *buffer) {
     // Error handling for deserialization failure
     errExit("Deserialization failed");
   }
-  cbor_describe(item, stdout);
   return item;
 }
 
@@ -87,7 +86,7 @@ Command createCommandFromItem(cbor_item_t *item) {
   size_t mapSize = cbor_map_size(item);
   cmd.argc = 0;
   cmd.args = NULL;
-  cbor_describe(item, stdout);
+  // cbor_describe(item, stdout);
 
   for (size_t i = 0; i < mapSize; i++) {
     if (!strncmp((char *)cbor_string_handle(pairs[i].key), "command", 7)) {

@@ -40,6 +40,9 @@ void *handleConnection(void *arg) {
     Command cmd = createCommandFromItem(item);
     user_t *user = args->clientNode;
     handleCommand(cmd, *user);
+    char *deserialized = deserializeBuffer(buffer);
+    unsigned char *serialized =
+        serializeData(sizeof(char) * strlen(deserialized), item);
 
     user_t *current = args->start->next;
     while (current != NULL) {        // traverse linked list
@@ -48,7 +51,7 @@ void *handleConnection(void *arg) {
         continue;
       }
 
-      send(current->fd, buffer, 255, 0); // send to other clients
+      send(current->fd, serialized, 255, 0); // send to other clients
       current = current->next;
     }
   }

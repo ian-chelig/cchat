@@ -34,7 +34,7 @@ void initClient(Args args) {
   struct Command cmd;
   cbor_item_t item;
 
-  for (;;) {
+  for (;;) { // are we only sending half the cbor object or something?????!?!
     char buffer[256] = {0};
     poll(fds, 2, 50000);
     if (fds[0].revents & POLLIN) {
@@ -42,10 +42,12 @@ void initClient(Args args) {
       unsigned char *serialized = serializeBuffer(buffer);
       send(sockfd, serialized, 255, 0);
     } else if (fds[1].revents & POLLIN) {
-      if (recv(sockfd, buffer, 255, 0) == 0)
+      if (recv(sockfd, buffer, 255, 0) < 0)
         return;
-      // deserializeBuffer();
-      printf("%s\n", buffer);
+      item = *deserializeData(sizeof(char) * strlen(buffer),
+                              (unsigned char *)buffer);
+      cmd = createCommandFromItem(&item);
+      printf("%s\n", cmd.args[0]);
     }
 
     fflush(stdout);
