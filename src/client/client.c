@@ -19,6 +19,7 @@ int initClient(Args args) {
   struct pollfd fds[2] = {{0, POLLIN, 0}, {sockfd, POLLIN, 0}}; // 0 = stdin
   struct in_addr addr;
   struct sockaddr_in address;
+  int res = 0;
 
   printf("Initializing Client\n\n");
   fflush(stdout);
@@ -27,7 +28,8 @@ int initClient(Args args) {
   if (port < 0 || port > 65535) {
     printf("\nInvalid port number! Choose 1-65535");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   addr.s_addr = inet_addr(args.c);
@@ -124,11 +126,13 @@ int initClient(Args args) {
         fflush(stdout);
         continue;
       }
-      printf("%s", inBuffer);
+      printf("\n%s", inBuffer);
     }
 
     fflush(stdout);
   }
 
-  return 0;
+  res = 0;
+cleanup:
+  return res;
 }
