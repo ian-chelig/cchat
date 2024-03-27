@@ -75,15 +75,14 @@ int initClient(Args args) {
     return -1;
   }
 
-  
-
   for (;;) { // are we only sending/receiving half the cbor object or
-    Command *cmd = (Command *)malloc(sizeof(Command)); //memory leak
+    Command *cmd = (Command *)malloc(sizeof(Command)); // memory leak
     char userBuf[256] = {0};
-    unsigned char recvBuf[256] = { 0 };
+    char inBuffer[256] = {0};
+    unsigned char recvBuf[256] = {0};
     unsigned char *outBuffer;
-    
-    if ((poll(fds, 2, 50000)) < 1) {
+
+    if ((poll(fds, 2, 50000)) < 0) {
       printf("\nFailed to poll from file descriptors");
       fflush(stdout);
       continue;
@@ -107,14 +106,12 @@ int initClient(Args args) {
         fflush(stdout);
         continue;
       }
-      printf("\nSent: %s", outBuffer);
     } else if (fds[1].revents & POLLIN) {
       if ((recv(sockfd, recvBuf, 255, 0)) < 1) {
         printf("\nLost connection to server!");
         fflush(stdout);
-        return -1;
+        return 0;
       }
-      printf("\nRecv: %s", recvBuf);
 
       if ((deserializeBuffer(recvBuf, &cmd)) == -1) {
         printf("\nFailed to deserialize buffer!");
@@ -122,15 +119,16 @@ int initClient(Args args) {
         continue;
       }
 
-      if ((plaintextFromMessageCMD(*cmd, (char *)outBuffer)) == -1) {
+      if ((plaintextFromMessageCMD(*cmd, inBuffer)) == -1) {
         printf("\nFailed to create buffer!");
         fflush(stdout);
         continue;
       }
-
-      printf("%s\n", outBuffer);
+      printf("%s", inBuffer);
     }
 
     fflush(stdout);
   }
+
+  return 0;
 }
