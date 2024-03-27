@@ -26,8 +26,8 @@ int *setupLocalClient(void *arg) {
 int handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   int clientfd = args->clientfd;
-  unsigned char outBuffer[256] = { 0 };
-  unsigned char userBuf[256] = { 0 };
+  unsigned char outBuffer[256] = {0};
+  unsigned char userBuf[256] = {0};
   char *deserialized;
   unsigned char *serialized;
   user_t *current;
@@ -35,9 +35,8 @@ int handleConnection(void *arg) {
   user_t *tmpprev;
   user_t *tmpnext;
   Command *cmd = (Command *)malloc(sizeof(Command));
-  int bytes_read = 0;
 
-  while ((bytes_read = read(clientfd, userBuf, 255)) > 0) { // while connection not dead
+  while ((read(clientfd, userBuf, 255)) > 0) { // while connection not dead
     if ((deserializeBuffer(userBuf, &cmd)) == -1) {
       printf("\nFailed to deserialize buffer!");
       fflush(stdout);
