@@ -74,6 +74,102 @@ int createCommandFromPlaintext(char *in_buffer, Command *out_cmd) {
   out_cmd->argc = 0;
   out_cmd->args = NULL;
 
+  if (temp == NULL) {
+    printf("\nAllocating memory for temp failed.");
+    fflush(stdout);
+    return -1;
+  }
+
+  strncpy(temp, in_buffer, strlen(in_buffer));
+  temp[strlen(in_buffer)] = '\0'; // Ensure null-termination
+
+  token = strtok(in_buffer, " ");
+
+  if (token == NULL) {
+    printf("\nTokenization failed!");
+    free(temp);
+    return -1;
+  }
+
+  if (token[0] == '/') {
+    out_cmd->command = strdup(token + 1);
+    if (out_cmd->command == NULL) {
+      printf("\nString duplication failed!");
+      fflush(stdout);
+      free(temp);
+      return -1;
+    }
+  } else {
+    out_cmd->command = strdup("message");
+    if (out_cmd->command == NULL) {
+      printf("\nString duplication failed!");
+      fflush(stdout);
+      free(temp);
+      return -1;
+    }
+
+    out_cmd->args = malloc(sizeof(char *));
+    if (out_cmd->args == NULL) {
+      printf("\nAllocating memory for args failed.");
+      fflush(stdout);
+      free(temp);
+      return -1;
+    }
+
+    out_cmd->args[0] = strdup(temp);
+    if (out_cmd->args[0] == NULL) {
+      printf("\nString duplication failed!");
+      fflush(stdout);
+      free(temp);
+      return -1;
+    }
+
+    out_cmd->argc = 1;
+    free(temp);
+    return 0;
+  }
+
+  out_cmd->args = malloc(sizeof(char *));
+  if (out_cmd->args == NULL) {
+    printf("\nAllocating memory for args failed.");
+    fflush(stdout);
+    free(temp);
+    return -1;
+  }
+
+  token = strtok(NULL, " ");
+
+  while (token != NULL && out_cmd->argc < 10) {
+    out_cmd->args =
+        realloc(out_cmd->args, (out_cmd->argc + 1) * sizeof(char *));
+    if (out_cmd->args == NULL) {
+      printf("\nReallocating memory for args failed.");
+      fflush(stdout);
+      free(temp);
+      return -1;
+    }
+
+    out_cmd->args[out_cmd->argc++] = strdup(token);
+    if (out_cmd->args[out_cmd->argc - 1] == NULL) {
+      printf("\nString duplication failed!");
+      fflush(stdout);
+      free(temp);
+      return -1;
+    }
+
+    token = strtok(NULL, " ");
+  }
+
+  free(temp);
+  return 0;
+}
+/*/*
+ * int createCommandFromPlaintext(char *in_buffer, Command *out_cmd) {
+  char *token;
+  char *temp = malloc(sizeof(char) * (strlen(in_buffer) + 1));
+  out_cmd->argc = 0;
+  out_cmd->args = NULL;
+
   strncpy(temp, in_buffer, sizeof(char) * strlen(in_buffer));
   if (temp == NULL) {
     printf("\nCopying string failed.");
@@ -82,49 +178,49 @@ int createCommandFromPlaintext(char *in_buffer, Command *out_cmd) {
   }
 
   token = strtok(in_buffer, " ");
-  /*if (token == NULL) {
+  //if (token == NULL) {
     printf("\nTokenization failed!");
     return -1;
-  }*/
+  }//
 
-  if (token[0] == '/') {
-    out_cmd->command = strdup(token + 1);
-    if (out_cmd->command == NULL) {
-      printf("\nString duplication failed!");
-      fflush(stdout);
-      return -1;
-    }
-  } else {
-    out_cmd->command = strdup("message");
-    if (out_cmd->command == NULL) {
-      printf("\nString duplication failed!");
-      fflush(stdout);
-      return -1;
-    }
-
-    out_cmd->args = malloc(sizeof(char *));
-    out_cmd->args[0] = temp;
-    out_cmd->argc = 1;
-    return 0;
+if (token[0] == '/') {
+  out_cmd->command = strdup(token + 1);
+  if (out_cmd->command == NULL) {
+    printf("\nString duplication failed!");
+    fflush(stdout);
+    return -1;
+  }
+} else {
+  out_cmd->command = strdup("message");
+  if (out_cmd->command == NULL) {
+    printf("\nString duplication failed!");
+    fflush(stdout);
+    return -1;
   }
 
   out_cmd->args = malloc(sizeof(char *));
-  token = strtok(NULL, " ");
-  /*if (token == NULL) {
-    printf("\nTokenization failed!");
-    return -1;
-  }*/
-
-  while (token != NULL && out_cmd->argc < 10) { //...10? really?
-    out_cmd->args =
-        realloc(out_cmd->args, (out_cmd->argc + 1) * sizeof(char *));
-    out_cmd->args[out_cmd->argc++] = strdup(token);
-    token = strtok(NULL, " ");
-    /*if (token == NULL) {
-      printf("\nTokenization failed!");
-      return -1;
-    }*/
-  }
-
+  out_cmd->args[0] = temp;
+  out_cmd->argc = 1;
   return 0;
 }
+
+out_cmd->args = malloc(sizeof(char *));
+token = strtok(NULL, " ");
+//if (token == NULL) {
+  printf("\nTokenization failed!");
+  return -1;
+}//
+
+while (token != NULL && out_cmd->argc < 10) { //...10? really?
+  out_cmd->args = realloc(out_cmd->args, (out_cmd->argc + 1) * sizeof(char *));
+  out_cmd->args[out_cmd->argc++] = strdup(token);
+  token = strtok(NULL, " ");
+  //if (token == NULL) {
+    printf("\nTokenization failed!");
+    return -1;
+  }//
+}
+
+return 0;
+}
+*/

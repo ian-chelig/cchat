@@ -9,4 +9,5 @@ typedef struct Command {
   size_t argc;
 } Command;
 
+void free_command(Command *cmd);
 #endif

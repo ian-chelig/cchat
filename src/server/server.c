@@ -82,6 +82,7 @@ int handleConnection(void *arg) {
 int initServer(Args args) {
   int sockfd = -1;
   int port = -1;
+  int res = -1;
   struct sockaddr_in address;
   // Create head
   user_t *start = &((user_t){.fd = -1,
@@ -98,14 +99,16 @@ int initServer(Args args) {
   if (sockfd < 0) {
     printf("\nFailed to create socket!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   port = htons(args.port);
   if (port < 0 || port > 65535) {
     printf("\nInvalid port! Choose a range 1-65535");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   address.sin_family = AF_INET;
@@ -115,13 +118,15 @@ int initServer(Args args) {
   if ((bind(sockfd, (struct sockaddr *)&address, sizeof(address))) < 0) {
     printf("\nFailed to bind to socket!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   if ((listen(sockfd, 10)) < 0) {
     printf("\nFailed to listen on socket!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   for (;;) {
@@ -135,7 +140,8 @@ int initServer(Args args) {
     if (clientfd == -1) {
       printf("\nFailed to accept connection!");
       fflush(stdout);
-      return -1;
+      res = -1;
+      goto cleanup;
     }
 
     // create new connection entry in linked list
@@ -152,7 +158,12 @@ int initServer(Args args) {
         0) {
       printf("\nFailed to handle connection!");
       fflush(stdout);
-      return -1;
+      res = -1;
+      goto cleanup;
     }
   }
+
+  res = 0;
+cleanup:
+  return res;
 }
