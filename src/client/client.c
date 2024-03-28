@@ -40,21 +40,24 @@ int initClient(Args args) {
   if (port < 0 || port > 65535) {
     printf("\nInvalid port number! Choose 1-65535");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   addr.s_addr = inet_addr(args.c);
   if (addr.s_addr == INADDR_NONE) {
     printf("\nInvalid IP!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
     printf("\nCould not create socket!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   // assign address and server socket fd
@@ -66,26 +69,34 @@ int initClient(Args args) {
   if ((connect(sockfd, (struct sockaddr *)&address, sizeof(address))) == -1) {
     printf("\nFailed to connect!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   // send username to server
   if ((sprintf(nickBuf, "/nick %s", args.u)) < 0) { // snprintf is safer
     printf("\nFailed to write nickname to buffer!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   if ((serializeBuffer(nickBuf, &nickoBuf)) == -1) {
     printf("\nFailed to serialize nickname!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
   }
 
   if ((send(sockfd, nickoBuf, 255, 0)) == -1) {
     printf("\nFailed to send nickname!");
     fflush(stdout);
-    return -1;
+    res = -1;
+    goto cleanup;
+  }
+
+  if (nickoBuf != NULL) {
+    free(nickoBuf);
   }
 
   for (;;) { // are we only sending/receiving half the cbor object or
@@ -108,7 +119,8 @@ int initClient(Args args) {
         printf("\nFailed to read from stdin!");
         fflush(stdout);
         client_cleanup(cmd, outBuffer);
-        return -1;
+        res = -1;
+        goto cleanup;
       }
 
       if ((serializeBuffer(userBuf, &outBuffer)) == -1) {
@@ -129,7 +141,8 @@ int initClient(Args args) {
         printf("\nLost connection to server!");
         fflush(stdout);
         client_cleanup(cmd, outBuffer);
-        return 0;
+        res = 0;
+        goto cleanup;
       }
 
       if ((deserializeBuffer(recvBuf, &cmd)) == -1) {

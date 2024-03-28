@@ -26,14 +26,15 @@ int *setupLocalClient(void *arg) {
 int handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   int clientfd = args->clientfd;
+  int res = 0;
   unsigned char outBuffer[256] = {0};
   unsigned char userBuf[256] = {0};
-  char *deserialized;
-  unsigned char *serialized;
-  user_t *current;
-  user_t *clientNode;
-  user_t *tmpprev;
-  user_t *tmpnext;
+  char *deserialized = NULL;
+  unsigned char *serialized = NULL;
+  user_t *current = NULL;
+  user_t *clientNode = NULL;
+  user_t *tmpprev = NULL;
+  user_t *tmpnext = NULL;
   Command *cmd = (Command *)malloc(sizeof(Command));
 
   while ((read(clientfd, userBuf, 255)) > 0) { // while connection not dead
