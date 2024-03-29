@@ -23,21 +23,16 @@ int *setupLocalClient(void *arg) {
   return NULL;
 }
 
-int handleConnection(void *arg) {
+void handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
-  int clientfd = args->clientfd;
-  int res = 0;
-  unsigned char outBuffer[256] = {0};
   unsigned char userBuf[256] = {0};
-  char *deserialized = NULL;
-  unsigned char *serialized = NULL;
   user_t *current = NULL;
-  user_t *clientNode = NULL;
   user_t *tmpprev = NULL;
   user_t *tmpnext = NULL;
   Command *cmd = (Command *)malloc(sizeof(Command));
 
-  while ((read(clientfd, userBuf, 255)) > 0) { // while connection not dead
+  // while connection not dead
+  while ((read(args->clientfd, userBuf, 255)) > 0) {
     if ((deserializeBuffer(userBuf, &cmd)) == -1) {
       printf("\nFailed to deserialize buffer!");
       fflush(stdout);
@@ -47,8 +42,8 @@ int handleConnection(void *arg) {
     fflush(stdout);
 
     current = args->start->next;
-    while (current != NULL) {        // traverse linked list
-      if (current->fd == clientfd) { // don't send back to sending client
+    while (current != NULL) {              // traverse linked list
+      if (current->fd == args->clientfd) { // don't send back to sending client
         current = current->next;
         continue;
       }
@@ -68,16 +63,18 @@ int handleConnection(void *arg) {
 
   // remove client node from linked list, heal the linked list
   // might be more cleanup that needs to be done here??
-  clientNode = args->clientNode;
-  tmpprev = clientNode->prev;
-  tmpnext = clientNode->next;
+  tmpprev = args->clientNode->prev;
+  tmpnext = args->clientNode->next;
   tmpprev->next = tmpnext;
   if (tmpnext != NULL) {
     tmpnext->prev = tmpprev;
   }
-  free(clientNode);
 
-  return 0;
+cleanup:
+  if (cmd->args != NULL)
+    free_command(cmd);
+  cmd = NULL;
+  pthread_exit(NULL); // Doesn't return anything
 }
 
 int initServer(Args args) {
@@ -157,6 +154,13 @@ int initServer(Args args) {
 
     if ((pthread_create(&newThread, NULL, (void *)handleConnection, connArgs)) <
         0) {
+      printf("\nFailed to handle connection!");
+      fflush(stdout);
+      res = -1;
+      goto cleanup;
+    }
+
+    if (pthread_detach(newThread) != 0) { // Allow thread to clean itself up
       printf("\nFailed to handle connection!");
       fflush(stdout);
       res = -1;

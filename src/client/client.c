@@ -12,12 +12,10 @@
 #include "parser.h"
 
 void client_cleanup(Command *cmd, unsigned char *buffer) {
-  printf("\nfreeing buffer:");
   if (buffer != NULL)
     free(buffer);
 
-  printf("\nfreeing cmd:");
-  if (cmd != NULL) {
+  if (cmd->args != NULL) {
     free_command(cmd);
     cmd = NULL; // Avoid double free
   }
@@ -101,7 +99,6 @@ int initClient(Args args) {
 
   for (;;) { // are we only sending/receiving half the cbor object or
     Command *cmd = (Command *)malloc(sizeof(Command)); // memory leak
-    Command *new_cmd = NULL;
     char userBuf[256] = {0};
     char inBuffer[256] = {0};
     unsigned char recvBuf[256] = {0};
@@ -159,14 +156,14 @@ int initClient(Args args) {
         continue;
       }
 
-      free_command(cmd);
-      cmd = new_cmd;
       printf("\n%s", inBuffer);
     }
 
     fflush(stdout);
     if (outBuffer != NULL)
       free(outBuffer);
+    if (cmd->args != NULL)
+      free_command(cmd);
   }
 
   res = 0;
