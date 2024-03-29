@@ -77,6 +77,56 @@ cleanup:
   pthread_exit(NULL); // Doesn't return anything
 }
 
+int spawn_connectons(int sockfd, user_t *start, user_t **end) {
+  int res = -1;
+
+  int clientfd = -1;
+  pthread_t newThread;
+  user_t *newConnection = (user_t *)malloc(sizeof(user_t));
+  struct connectionArgs *connArgs =
+      (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
+
+  clientfd = accept(sockfd, 0, 0);
+  if (clientfd == -1) {
+    printf("\nFailed to accept connection!");
+    fflush(stdout);
+    res = -1;
+    goto cleanup;
+  }
+
+  // create new connection entry in linked list
+  *newConnection = (user_t){
+      .fd = clientfd, .prev = *end, .next = NULL, .uid = -1, .nick = ""};
+  (*end)->next = newConnection;
+  *end = (*end)->next;
+
+  // provide proper information to connection handler thread
+  *connArgs = (struct connectionArgs){
+      .clientfd = clientfd, .start = start, .clientNode = newConnection};
+
+  if ((pthread_create(&newThread, NULL, (void *)handleConnection, connArgs)) <
+      0) {
+    printf("\nFailed to handle connection!");
+    fflush(stdout);
+    res = -1;
+    goto cleanup;
+  }
+
+  if (pthread_detach(newThread) != 0) { // Allow thread to clean itself up
+    printf("\nFailed to handle connection!");
+    fflush(stdout);
+    res = -1;
+    goto cleanup;
+  }
+  res = 0;
+cleanup:
+  if (clientfd < 1)
+    close(clientfd);
+  clientfd = -1;
+
+  return res;
+}
+
 int initServer(Args args) {
   int sockfd = -1;
   int port = -1;
@@ -127,46 +177,8 @@ int initServer(Args args) {
     goto cleanup;
   }
 
-  for (;;) {
-    int clientfd = -1;
-    pthread_t newThread;
-    user_t *newConnection = (user_t *)malloc(sizeof(user_t));
-    struct connectionArgs *connArgs =
-        (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
-
-    clientfd = accept(sockfd, 0, 0);
-    if (clientfd == -1) {
-      printf("\nFailed to accept connection!");
-      fflush(stdout);
-      res = -1;
-      goto cleanup;
-    }
-
-    // create new connection entry in linked list
-    *newConnection = (user_t){
-        .fd = clientfd, .prev = end, .next = NULL, .uid = -1, .nick = ""};
-    end->next = newConnection;
-    end = end->next;
-
-    // provide proper information to connection handler thread
-    *connArgs = (struct connectionArgs){
-        .clientfd = clientfd, .start = start, .clientNode = newConnection};
-
-    if ((pthread_create(&newThread, NULL, (void *)handleConnection, connArgs)) <
-        0) {
-      printf("\nFailed to handle connection!");
-      fflush(stdout);
-      res = -1;
-      goto cleanup;
-    }
-
-    if (pthread_detach(newThread) != 0) { // Allow thread to clean itself up
-      printf("\nFailed to handle connection!");
-      fflush(stdout);
-      res = -1;
-      goto cleanup;
-    }
-  }
+  while (spawn_connectons(sockfd, start, &end) == 0)
+    ;
 
   res = 0;
 cleanup:
