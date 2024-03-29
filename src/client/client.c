@@ -14,6 +14,7 @@
 void client_cleanup(Command *cmd, unsigned char *buffer) {
   if (buffer != NULL)
     free(buffer);
+  buffer = NULL;
 
   if (cmd->args != NULL) {
     free_command(cmd);
@@ -96,6 +97,7 @@ int initClient(Args args) {
   if (nickoBuf != NULL) {
     free(nickoBuf);
   }
+  nickoBuf = NULL;
 
   for (;;) { // are we only sending/receiving half the cbor object or
     Command *cmd = (Command *)malloc(sizeof(Command)); // memory leak
@@ -175,8 +177,10 @@ cleanup:
       res = -1;
     }
   }
+  sockfd = -1;
 
   if (nickoBuf)
     free(nickoBuf);
+  nickoBuf = NULL;
   return res;
 }

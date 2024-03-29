@@ -170,5 +170,9 @@ int initServer(Args args) {
 
   res = 0;
 cleanup:
+  if (sockfd < 1)
+    close(sockfd);
+  sockfd = -1;
+
   return res;
 }

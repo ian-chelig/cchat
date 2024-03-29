@@ -11,6 +11,7 @@ void free_command(Command *cmd) {
   if (cmd->command != NULL) {
     free(cmd->command);
   }
+  cmd->command = NULL;
 
   // Free dynamically allocated memory for args
   if (cmd->args != NULL) {
@@ -18,10 +19,13 @@ void free_command(Command *cmd) {
       if (cmd->args[i] != NULL) {
         free(cmd->args[i]);
       }
+      cmd->args[i] = NULL;
     }
     free(cmd->args);
+    cmd->args = NULL;
   }
 
   // Free the struct itself
   free(cmd);
+  cmd = NULL;
 }
