@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <cbor/data.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -16,6 +17,54 @@
 #include "handler.h"
 #include "parser.h"
 #include "server.h"
+
+int free_user(user_t *user) {
+  if (user == NULL)
+    return -1;
+
+  if (user->nick != NULL) {
+    free(user->nick);
+  }
+
+  if (user->next != NULL) {
+    free(user->next);
+  }
+  user->next = NULL;
+
+  if (user->prev != NULL) {
+    free(user->prev);
+  }
+  user->prev = NULL;
+
+  free(user);
+  user->fd = -1;
+  user->uid = -1;
+  user = NULL;
+  return 0;
+}
+
+int free_args(struct connectionArgs *args) {
+  if (args == NULL)
+    return -1;
+
+  // Free dynamically allocated memory for command
+
+  // Free dynamically allocated memory for args
+  if (args->clientNode != NULL) {
+    free_user(args->clientNode);
+  }
+  args->clientNode = NULL;
+
+  if (args->start != NULL) {
+    free_user(args->start);
+  }
+  args->start = NULL;
+  // Free the struct itself
+  free(args);
+  args->clientfd = -1;
+  args = NULL;
+  return 0;
+}
 
 int *setupLocalClient(void *arg) {
   Args *a = (Args *)arg;
@@ -101,6 +150,7 @@ int spawn_connectons(int sockfd, user_t *start, user_t **end) {
   *end = (*end)->next;
 
   // provide proper information to connection handler thread
+
   *connArgs = (struct connectionArgs){
       .clientfd = clientfd, .start = start, .clientNode = newConnection};
 
@@ -123,6 +173,18 @@ cleanup:
   if (clientfd < 1)
     close(clientfd);
   clientfd = -1;
+
+  // seg faults in here somewhere
+  // i suspect it may be because of us freeing
+  // memory that the detached threads are using
+  //
+  if (connArgs != NULL)
+    free_args(connArgs);
+  connArgs = NULL;
+
+  if (newConnection != NULL)
+    free_user(newConnection);
+  newConnection = NULL;
 
   return res;
 }
