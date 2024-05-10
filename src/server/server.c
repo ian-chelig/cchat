@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <bits/pthreadtypes.h>
 #include <cbor/data.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -19,27 +20,37 @@
 #include "server.h"
 
 int free_user(user_t *user) {
+  user_t *tmpprev;
+  user_t *tmpnext;
+
   if (user == NULL)
     return -1;
 
-  if (user->nick != NULL) {
-    free(user->nick);
+  // Server crashes when it tries to send message to a disconnected client
+  // Perhaps we arent healing the linked list properly
+  pthread_mutex_lock(&user->lock);
+  tmpprev = user->prev;
+  tmpnext = user->next;
+  pthread_mutex_lock(&tmpprev->lock);
+  pthread_mutex_lock(&tmpnext->lock);
+  tmpprev->next = tmpnext;
+  if (tmpnext != NULL) {
+    tmpnext->prev = tmpprev;
   }
+  pthread_mutex_unlock(&tmpnext->lock);
+  pthread_mutex_unlock(&tmpprev->lock);
+  pthread_mutex_unlock(&user->lock);
+  pthread_mutex_destroy(&user->lock);
 
-  if (user->next != NULL) {
-    free(user->next);
-  }
-  user->next = NULL;
-
-  if (user->prev != NULL) {
-    free(user->prev);
-  }
-  user->prev = NULL;
-
-  free(user);
+  if (user->fd < 1)
+    close(user->fd);
   user->fd = -1;
-  user->uid = -1;
+
+  if (user != NULL)
+    free(user);
   user = NULL;
+
+  user->uid = -1;
   return 0;
 }
 
@@ -47,9 +58,6 @@ int free_args(struct connectionArgs *args) {
   if (args == NULL)
     return -1;
 
-  // Free dynamically allocated memory for command
-
-  // Free dynamically allocated memory for args
   if (args->clientNode != NULL) {
     free_user(args->clientNode);
   }
@@ -59,10 +67,15 @@ int free_args(struct connectionArgs *args) {
     free_user(args->start);
   }
   args->start = NULL;
-  // Free the struct itself
-  free(args);
+
+  if (args->clientfd < 1)
+    close(args->clientfd);
   args->clientfd = -1;
+
+  if (args != NULL)
+    free(args);
   args = NULL;
+
   return 0;
 }
 
@@ -76,8 +89,6 @@ void handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
   unsigned char userBuf[256] = {0};
   user_t *current = NULL;
-  user_t *tmpprev = NULL;
-  user_t *tmpnext = NULL;
   Command *cmd = (Command *)malloc(sizeof(Command));
 
   // while connection not dead
@@ -109,28 +120,22 @@ void handleConnection(void *arg) {
       current = current->next;
     }
   }
-
-  // remove client node from linked list, heal the linked list
-  // might be more cleanup that needs to be done here??
-  tmpprev = args->clientNode->prev;
-  tmpnext = args->clientNode->next;
-  tmpprev->next = tmpnext;
-  if (tmpnext != NULL) {
-    tmpnext->prev = tmpprev;
-  }
-
 cleanup:
+  if (arg != NULL)
+    free_args(arg);
+  arg = NULL;
+
   if (cmd->args != NULL)
     free_command(cmd);
   cmd = NULL;
   pthread_exit(NULL); // Doesn't return anything
 }
 
-int spawn_connectons(int sockfd, user_t *start, user_t **end) {
+int spawn_connections(int sockfd, user_t *start, user_t **end) {
   int res = -1;
-
   int clientfd = -1;
   pthread_t newThread;
+  pthread_mutex_t lock;
   user_t *newConnection = (user_t *)malloc(sizeof(user_t));
   struct connectionArgs *connArgs =
       (struct connectionArgs *)malloc(sizeof(struct connectionArgs));
@@ -144,10 +149,17 @@ int spawn_connectons(int sockfd, user_t *start, user_t **end) {
   }
 
   // create new connection entry in linked list
-  *newConnection = (user_t){
-      .fd = clientfd, .prev = *end, .next = NULL, .uid = -1, .nick = ""};
+  pthread_mutex_init(&lock, NULL);
+  *newConnection = (user_t){.fd = clientfd,
+                            .prev = *end,
+                            .next = NULL,
+                            .uid = -1,
+                            .nick = "",
+                            .lock = lock};
+  pthread_mutex_lock(&(*end)->lock);
   (*end)->next = newConnection;
   *end = (*end)->next;
+  pthread_mutex_unlock(&(*end)->lock);
 
   // provide proper information to connection handler thread
 
@@ -169,23 +181,9 @@ int spawn_connectons(int sockfd, user_t *start, user_t **end) {
     goto cleanup;
   }
   res = 0;
+  return res;
 cleanup:
-  if (clientfd < 1)
-    close(clientfd);
-  clientfd = -1;
-
-  // seg faults in here somewhere
-  // i suspect it may be because of us freeing
-  // memory that the detached threads are using
-  //
-  if (connArgs != NULL)
-    free_args(connArgs);
-  connArgs = NULL;
-
-  if (newConnection != NULL)
-    free_user(newConnection);
-  newConnection = NULL;
-
+  // cleanup here
   return res;
 }
 
@@ -195,11 +193,13 @@ int initServer(Args args) {
   int res = -1;
   struct sockaddr_in address;
   // Create head
-  user_t *start = &((user_t){.fd = -1,
-                             .next = NULL,
-                             .prev = NULL,
-                             .uid = -1,
-                             .nick = ""}); // ADD R/W LOCK TO NODES
+  user_t *start =
+      &((user_t){.fd = -1,
+                 .next = NULL,
+                 .prev = NULL,
+                 .uid = -1,
+                 .nick = "",
+                 .lock = PTHREAD_MUTEX_INITIALIZER}); // ADD R/W LOCK TO NODES
   user_t *end = start;
 
   printf("Initializing Server\n");
@@ -239,7 +239,7 @@ int initServer(Args args) {
     goto cleanup;
   }
 
-  while (spawn_connectons(sockfd, start, &end) == 0)
+  while (spawn_connections(sockfd, start, &end) == 0)
     ;
 
   res = 0;
@@ -247,6 +247,7 @@ cleanup:
   if (sockfd < 1)
     close(sockfd);
   sockfd = -1;
+  pthread_mutex_destroy(&start->lock);
 
   return res;
 }

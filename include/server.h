@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include "args.h"
+#include <bits/pthreadtypes.h>
 
 typedef struct user {
   int fd;
@@ -9,6 +10,7 @@ typedef struct user {
   char *nick;
   struct user *next;
   struct user *prev;
+  pthread_mutex_t lock;
 } user_t;
 
 struct connectionArgs {
