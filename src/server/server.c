@@ -109,14 +109,14 @@ void handleConnection(void *arg) {
       }
 
       // send to other clients
-      if ((send(current->fd, userBuf, 255, 0)) == -1) {
+      if ((send(current->fd, userBuf, 255, MSG_NOSIGNAL)) == -1) {
         printf("\nFailed to send data!");
+        //client is dead, need to put cleanup code here
         fflush(stdout);
-        continue;
+      } else {
+        printf("\nSent: %s", userBuf);
+        fflush(stdout);
       }
-      printf("\nSent: %s", userBuf);
-      fflush(stdout);
-
       current = current->next;
     }
   }
