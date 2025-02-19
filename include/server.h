@@ -19,7 +19,7 @@ struct connectionArgs {
   user_t *clientNode;
 };
 
-int *setupLocalClient(void *arg);
+//int *setupLocalClient(void *arg);
 int initServer(Args args);
 
 #endif

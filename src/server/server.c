@@ -79,11 +79,11 @@ int free_args(struct connectionArgs *args) {
   return 0;
 }
 
-int *setupLocalClient(void *arg) {
+/* int *setupLocalClient(void *arg) {
   Args *a = (Args *)arg;
   initClient(*a); // report check and handle
   return NULL;
-}
+} */
 
 void handleConnection(void *arg) {
   struct connectionArgs *args = (struct connectionArgs *)arg;
@@ -250,4 +250,9 @@ cleanup:
   pthread_mutex_destroy(&start->lock);
 
   return res;
+}
+
+
+int main(int argc, char **argv) {
+  return 0;
 }

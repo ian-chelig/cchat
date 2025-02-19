@@ -31,7 +31,7 @@ void printUsage() {
   printf("Usage: cchat -p <port> [-s | -c <address>] [-h] [-d] [-u]");
 }
 
-int processArgs(Args args) {
+/* int processArgs(Args args) {
   if (args.port == -1)
     printUsage();
   if (args.u == NULL)
@@ -64,7 +64,7 @@ int processArgs(Args args) {
   return 0;
 }
 
-int main(int argc, char **argv) {
+/* int oldmain(int argc, char **argv) {
   int opt;
   Args args = (Args){.s = 0, .c = NULL, .port = -1, .d = 0, .u = NULL};
 
@@ -113,4 +113,4 @@ int main(int argc, char **argv) {
     return -1;
   }
   return 0;
-}
+} */
